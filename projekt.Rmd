@@ -1,0 +1,243 @@
+---
+title: "SAP  - Projekt - Analiza tesniskih mečeva"
+author: "Bilić Ante, Paradžik Mario, Kaštelan Niko, Benjak Petar"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Motivacija i opis problema
+Statistika i predvidanje sportskih rezultata mogu pomoći menadžerima, trenerima, procjeniteljima kvota i drugima u donošenju odluka. U tenisu je statistika kao alat dobila dodatnu popularnost zahvaljujući bivšem treneru Craigu O’Shaughnessyu, strategu s uporištem u statistici čija je analiza bila ključna u rezultatima Novaka Dokovića protiv njegovih najvećih rivala. Svojim zaključcima izvedenim iz povijesnih podataka mečeva tenisačima je moguće prilagoditi kondicijske pripreme, teniske treninge i strategiju protiv pojedinih protivnika, što rezultira boljom i konzistentnijom igrom.
+
+### Učitavanje potrebnih paketa
+```{r echo=T, error=FALSE, warning=FALSE, message=FALSE}
+library(dplyr)
+library(tidyverse)
+```
+
+### Učitavanje podataka
+```{r}
+tennisMatches = read.csv('tennis_atp_matches.csv')
+```
+
+### Dimenzija podataka
+```{r}
+dim(tennisMatches)
+```
+
+### Nazivi varijabli
+```{r}
+names(tennisMatches)
+```
+
+### Prikaz podataka
+```{r}
+View(tennisMatches)
+```
+
+
+### Tipovi varijabli u skupu podataka
+```{r}
+sapply(tennisMatches, class)
+```
+
+Kod učitavanja podataka može doći do situacije gdje se tipovi podatak pogrešno prepoznaju
+pa ih je potrebno ručno izmijeniti. U ovom se slučaju krivo prepoznaju tipovi varijabli: tourney_date, winner_id te loser_id.
+```{r}
+tennisMatches = tennisMatches %>% mutate(tourney_date = as.Date(as.character(tourney_date), "%Y%m%d"),
+                  winner_id = as.factor(winner_id),
+                  loser_id = as.factor(loser_id))
+```
+
+```{r}
+summary(tennisMatches)
+```
+
+### Traženje nedostajećih vrijednosti
+Dani skup podataka nerijetko sadrži nedostajuće podatke. Rad nad takvim podacima može dovesti do pogrešaka u testiranju hipoteza i zakljućivanju. Varijable s velikim udjelom nedostajećih vrijednosti odbacujemo iz skupa podataka.
+```{r}
+for (col_name in names(tennisMatches)){
+  if (sum(is.na(tennisMatches[,col_name])) > 0){
+    cat('Ukupno nedostajućih vrijednosti za varijablu ',col_name, ': ', sum(is.na(tennisMatches[,col_name])),'\n')
+  }
+}
+```
+
+Varijabla winner_seed ima 59% nedostajećih vrijednosti, a varijabla loser_seed ima 78% nedostajećih vrijednosti što znači da nam ne daju puno informacija o teniskim mečevima pa se takve varijable uklanjanju iz skupa podataka.
+```{r}
+tennisMatches = select(tennisMatches, -c("winner_seed", "loser_seed"))
+dim(tennisMatches)
+```
+
+## Problem 1
+Možemo li nešto zaključiti iz distribucije visine najboljih deset igrača u posljednjih 30 godina u odnosu na distribuciju visine igrača koji nisu bili tako uspješni?
+
+Potrebno je izdvojiti visine tenisača u dva različita skupa podataka. Prvi skup podataka sadrži sve visine igrača koji su u trenutku odigravanje meča bili u top deset najboljih tenisača. Drugi skup podataka sadrži sve visine igrača koji u trenutku odigravanje meča nisu bili u top deset najboljih tenisača.
+
+```{r}
+# Spremanje visina igrača koji su u trenutku igranja meča u top deset najboljih
+topTenWinnerHeight = tennisMatches[tennisMatches$winner_rank <= 10, ]$winner_ht
+topTenLosserHeight = tennisMatches[tennisMatches$loser_rank <= 10, ]$loser_ht
+
+topTenHeight = append(topTenWinnerHeight, topTenLosserHeight)
+
+
+# Odbacivanje nedostajećih vrijednosti
+topTenHeight = topTenHeight[complete.cases(topTenHeight)]
+summary(topTenHeight)
+
+hist(topTenHeight,  xlab="Visina igrača", ylab="Frekvencija", main="Visina igrača koji su u top deset najboljih")
+```
+
+
+```{r}
+# Spremanje visina igrača koji u trenutku igranja meča nisu u top deset najboljih
+notTopTenWinnerHeight = tennisMatches[tennisMatches$winner_rank > 10, ]$winner_ht
+noTopTenLosserHeight = tennisMatches[tennisMatches$loser_rank > 10, ]$loser_ht
+
+notTopTenHeight = append(notTopTenWinnerHeight, noTopTenLosserHeight)
+
+# Odbacivanje nedostajećih vrijednosti
+notTopTenHeight = notTopTenHeight[complete.cases(notTopTenHeight)]
+summary(notTopTenHeight)
+
+hist(notTopTenHeight, xlab="Visina igrača", ylab="Frekvencija", main="Visina igrača koji nisu u top deset najboljih")
+```
+
+Prije određivanja testa potrebno je provjeriti normalnost podataka.
+
+# Histogram te QQ-dijagram upućuju na normalnost podataka visine top deset najboljih igrača.
+```{r}
+# QQ-dijagram
+qqnorm(topTenHeight, pch = 1, frame=FALSE, main="Visina top deset najboljih igrača")
+qqline(topTenHeight, col="steelblue", lwd=2)
+```
+
+Histogram te QQ-dijagram upućuju na normalnost podataka visine igrača koji nisu u top deset najboljih.
+```{r}
+# QQ-dijagram
+qqnorm(notTopTenHeight, pch = 1, frame=FALSE, main="Visina igrača koji nisu u top deset najboljih")
+qqline(notTopTenHeight, col="steelblue", lwd=2)
+```
+
+Pod pretpostavkom da visine igrača prate normalnu distribuciju nastavlja testiranje povezanosti visine i uspješnosti igrača, koristi se t-test.
+
+Testira se postoji li značajna razlika u očekivanju visine igrača koji su u top deset najboljih te onih koji nisu.
+
+$H_0$: očekivanje visine igrača koji su u top deset najboljih je jednako očekivanju visine onih igrača koji nisuu top deset najboljih
+$H_1$: očekivanje visine igrača koji su u top deset najboljih je veće od očekivanja visine onih igrača koji nisu u top deset najboljih
+
+## Provedba t-testa
+
+### Provjera jednakosti varijanci
+
+```{r}
+varTopTen = var(topTenHeight)
+varNotTopTen = var(notTopTenHeight)
+cat('Varijanca top deset najboljih igrača: ', varTopTen, '\n')
+cat('Varijanca igrača izvan top deset najboljih: ', varNotTopTen)
+```
+
+
+### Test o jednakosti varijanci
+
+Ako imamo dva nezavisna slučajna uzorka $X_1^1, X_1^2, \ldots X_1^{n_1}$ i $X_2^1, X_2^2, \ldots, X_2^{n_2}$ koji dolaze iz normalnih distribucija s varijancama $\sigma_1^2$ i $\sigma_2^2$, tada slučajna varijabla
+$$F = \frac{S_{X_1}^2 / \sigma_1^2}{S_{X_2}^2 / \sigma_2^2}$$
+
+ima Fisherovu distribuciju s $(n_1 - 1, n_2 - 1)$ stupnjeva slobode, pri čemu vrijedi:
+$$S_{X_1}^2 = \frac{1}{n_1 - 1} \sum_{i = 1}^{n_1} (X_1^i - \bar{X}_1)^2, \quad S_{X_2}^2 = \frac{1}{n_2 - 1} \sum_{i = 1}^{n_2} (X_2^i - \bar{X}_2)^2.$$
+Hipoteze testa jednakosti varijanci glase:
+$$ \begin{aligned}
+H_0&: \sigma_1^2 = \sigma_2^2 \\
+H_1&: \sigma_1^2 \neq \sigma_2^2
+\end{aligned} $$
+
+```{r}
+var.test(topTenHeight, notTopTenHeight)
+```
+### Zaključak 
+Odbacujemo hipotezu $H_0$ o jednakosti varijanci pri razini značajnosti od 0.05 s obzirom da je p-vrijednost 2.2e-16.
+
+Provedba t-testa uz pretpostavku o nejednakosti varijanci.
+
+```{r}
+t.test(topTenHeight, notTopTenHeight, alt = "greater", var.equal = FALSE)
+```
+### Zaključak
+Na razini značajnosti od 0.05 odbacujemo hipotezu $H_0$ premda je p-vrijednost 2.2e-16, postoji značajna razlika visina igrača u top deset najboljih u posljednjih 30 godina i onih izvan top deset najboljih. Visina igrača u top deset najboljih je veća od visine igrača koji nisu u top deset najboljih.
+
+Iz provedenog testa ne možemo zaključiti da visina izravno utječe na uspješnost igrača, već samo korelaciju između visine i uspješnosti igrača.
+
+
+
+## Problem 2
+Predviđa li pobjeda prvog seta pobjedu cijelog meča?
+
+Potrebno je izdvojiti sve mečeve u kojima je podijedio onaj tenisać koji je pobijedio i prvi set.
+
+Podaci o setovima mogu sadržavati W/O koji označuju predaju ili diskvalifikaciju, pa te takve podatke potrebno ukloniti iz skupa podataka.
+```{r}
+# Uklanjanje mečeva kojima je score W/O
+tennisMatchesSet = tennisMatches[!is.na(as.numeric(substr(tennisMatches$score, 1, 1))), ]
+
+
+wonFirstSetAndMatchMatches = tennisMatchesSet[substr(tennisMatchesSet$score, 1, 1) > substr(tennisMatchesSet$score, 3, 3), ]
+
+# Mečevi u kojima je pobjednik onaj koji je pobijedio prvi set
+wonFirstSetAndMatchCount = dim(wonFirstSetAndMatchMatches)[1]
+
+lostFirstSetAnWonMatchMatches = tennisMatchesSet[substr(tennisMatchesSet$score, 1, 1) < substr(tennisMatchesSet$score, 3, 3), ]
+
+# Mečevi u kojima je pobjednik onaj koji nije pobijedio prvi set
+lostFirstSetAndWonMatchCount = dim(lostFirstSetAnWonMatchMatches)[1]
+
+```
+
+
+Iz provedenih testova možemo zaključiti korelaciju podbjede prvog seta u svezi s pobjedom meča, ali ne možemo zaključiti da pobjeda prvog seta uzrokuje pobjedu meča.
+
+
+
+## Problem 3
+Možemo li temeljem danih varijabli predvidjeti pobjednika teniskog meča?
+```{r}
+
+```
+
+
+
+##Problem 4
+Utječe li broj aseva na ishod pobjednika?
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
