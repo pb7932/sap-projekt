@@ -246,7 +246,8 @@ Zbog male p-vrijednosti možemo zaključiti da broj ostvarenih aseva utječe na 
 #### Jackknife
 
 ```{r}
-#Moj jack
+aseviUpareni <- na.omit(aseviUpareni)
+
 mx <- mean(aseviUpareni)
 ps <- numeric(length(aseviUpareni))
 n <- length(aseviUpareni)
@@ -256,11 +257,8 @@ for(i in 1:length(aseviUpareni)){
 se <- sd(ps)/sqrt(n)
 j <- mean(ps)
 "Interval povjerenja 95%"
-"["
 (j - qt(0.975, n-1)*se)
-", "
 (j + qt(0.975, n-1)*se)
-"]"
 ```
 
 "Interval povjerenja 95% za aritmetičku sredinu"

@@ -554,7 +554,8 @@ t.test(aseviUpareni, alt=&quot;greater&quot;)</code></pre>
 <p>Zbog male p-vrijednosti možemo zaključiti da broj ostvarenih aseva utječe na pobjedu u meču.</p>
 <div id="jackknife" class="section level4">
 <h4>Jackknife</h4>
-<pre class="r"><code>#Moj jack
+<pre class="r"><code>aseviUpareni &lt;- na.omit(aseviUpareni)
+
 mx &lt;- mean(aseviUpareni)
 ps &lt;- numeric(length(aseviUpareni))
 n &lt;- length(aseviUpareni)
@@ -565,16 +566,10 @@ se &lt;- sd(ps)/sqrt(n)
 j &lt;- mean(ps)
 &quot;Interval povjerenja 95%&quot;</code></pre>
 <pre><code>## [1] &quot;Interval povjerenja 95%&quot;</code></pre>
-<pre class="r"><code>&quot;[&quot;</code></pre>
-<pre><code>## [1] &quot;[&quot;</code></pre>
 <pre class="r"><code>(j - qt(0.975, n-1)*se)</code></pre>
-<pre><code>## [1] NA</code></pre>
-<pre class="r"><code>&quot;, &quot;</code></pre>
-<pre><code>## [1] &quot;, &quot;</code></pre>
+<pre><code>## [1] 1.647672</code></pre>
 <pre class="r"><code>(j + qt(0.975, n-1)*se)</code></pre>
-<pre><code>## [1] NA</code></pre>
-<pre class="r"><code>&quot;]&quot;</code></pre>
-<pre><code>## [1] &quot;]&quot;</code></pre>
+<pre><code>## [1] 1.725504</code></pre>
 <p>“Interval povjerenja 95% za aritmetičku sredinu” [1.647672, 1.725504]</p>
 <p>Zato što srednja vrijednost <span class="math inline">\(\mu = 0\)</span> nije unutar 95% intervala procjene uzorka, mogu zaključiti da mogu odbaciti hipotezu <span class="math inline">\(H_0\)</span> uz nivo značajnosti 0.05.</p>
 </div>
