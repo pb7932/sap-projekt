@@ -1,10 +1,10 @@
 ---
-title: "SAP  - Projekt - Analiza tesniskih mečeva"
+title: "SAP  - Projekt - Analiza teniskih mečeva"
 author: "Bilić Ante, Paradžik Mario, Kaštelan Niko, Benjak Petar"
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Motivacija i opis problema
-Statistika i predvidanje sportskih rezultata mogu pomoći menadžerima, trenerima, procjeniteljima kvota i drugima u donošenju odluka. U tenisu je statistika kao alat dobila dodatnu popularnost zahvaljujući bivšem treneru Craigu O’Shaughnessyu, strategu s uporištem u statistici čija je analiza bila ključna u rezultatima Novaka Dokovića protiv njegovih najvećih rivala. Svojim zaključcima izvedenim iz povijesnih podataka mečeva tenisačima je moguće prilagoditi kondicijske pripreme, teniske treninge i strategiju protiv pojedinih protivnika, što rezultira boljom i konzistentnijom igrom.
+Statistika i predviđanje sportskih rezultata mogu pomoći menadžerima, trenerima, procjeniteljima kvota i drugima u donošenju odluka. U tenisu je statistika kao alat dobila dodatnu popularnost zahvaljujući bivšem treneru Craigu O’Shaughnessyu, strategu s uporištem u statistici čija je analiza bila ključna u rezultatima Novaka Đokovića protiv njegovih najvećih rivala. Svojim zaključcima izvedenim iz povijesnih podataka mečeva tenisačima je moguće prilagoditi kondicijske pripreme, teniske treninge i strategiju protiv pojedinih protivnika, što rezultira boljom i konzistentnijom igrom.
 
 ### Učitavanje potrebnih paketa
 ```{r echo=T, error=FALSE, warning=FALSE, message=FALSE}
@@ -58,8 +58,8 @@ tennisMatches = tennisMatches %>% mutate(tourney_date = as.Date(as.character(tou
 summary(tennisMatches)
 ```
 
-### Traženje nedostajećih vrijednosti
-Dani skup podataka nerijetko sadrži nedostajuće podatke. Rad nad takvim podacima može dovesti do pogrešaka u testiranju hipoteza i zakljućivanju. Varijable s velikim udjelom nedostajećih vrijednosti odbacujemo iz skupa podataka.
+### Traženje nedostajućih vrijednosti
+Dani skup podataka nerijetko sadrži nedostajuće podatke. Rad nad takvim podacima može dovesti do pogrešaka u testiranju hipoteza i zaključivanju. Varijable s velikim udjelom nedostajućih vrijednosti odbacujemo iz skupa podataka.
 ```{r}
 for (col_name in names(tennisMatches)){
   if (sum(is.na(tennisMatches[,col_name])) > 0){
@@ -68,7 +68,7 @@ for (col_name in names(tennisMatches)){
 }
 ```
 
-Varijabla winner_seed ima 59% nedostajećih vrijednosti, a varijabla loser_seed ima 78% nedostajećih vrijednosti što znači da nam ne daju puno informacija o teniskim mečevima pa se takve varijable uklanjanju iz skupa podataka.
+Varijabla winner_seed ima 59% nedostajućih vrijednosti, a varijabla loser_seed ima 78% nedostajućih vrijednosti što znači da nam ne daju puno informacija o teniskim mečevima pa se takve varijable uklanjanju iz skupa podataka.
 ```{r}
 tennisMatches = select(tennisMatches, -c("winner_seed", "loser_seed"))
 dim(tennisMatches)
@@ -129,7 +129,7 @@ Pod pretpostavkom da visine igrača prate normalnu distribuciju nastavlja testir
 
 Testira se postoji li značajna razlika u očekivanju visine igrača koji su u top deset najboljih te onih koji nisu.
 
-$H_0$: očekivanje visine igrača koji su u top deset najboljih je jednako očekivanju visine onih igrača koji nisuu top deset najboljih
+$H_0$: očekivanje visine igrača koji su u top deset najboljih je jednako očekivanju visine onih igrača koji nisu top deset najboljih
 $H_1$: očekivanje visine igrača koji su u top deset najboljih je veće od očekivanja visine onih igrača koji nisu u top deset najboljih
 
 ## Provedba t-testa
@@ -178,7 +178,7 @@ Iz provedenog testa ne možemo zaključiti da visina izravno utječe na uspješn
 ## Problem 2
 Predviđa li pobjeda prvog seta pobjedu cijelog meča?
 
-Potrebno je izdvojiti sve mečeve u kojima je podijedio onaj tenisać koji je pobijedio i prvi set.
+Potrebno je izdvojiti sve mečeve u kojima je pobijedio onaj tenisač koji je pobijedio i prvi set.
 
 Podaci o setovima mogu sadržavati W/O koji označuju predaju ili diskvalifikaciju, pa te takve podatke potrebno ukloniti iz skupa podataka.
 ```{r}
@@ -211,33 +211,59 @@ Možemo li temeljem danih varijabli predvidjeti pobjednika teniskog meča?
 
 
 
-##Problem 4
+## Problem 4
 Utječe li broj aseva na ishod pobjednika?
-```{r}
 
-```
-
+### Provjera normalnosti podataka
 
 ```{r}
-
+aseviUpareni = c(tennisMatches$w_ace - tennisMatches$l_ace)
 ```
-
 
 ```{r}
+qqnorm(aseviUpareni, pch = 1, frame=FALSE, main="Asevi igrača koji su dobili")
+qqline(aseviUpareni, col="steelblue", lwd=2)
 
+hist(aseviUpareni, main="Broj aseva W - L", xlab = "Razlika aseva", ylab = "Frekvenicja")
 ```
+Podatci prate zvonikoliku krivulju, a t-test je robustan na ne normalnost.
+```{r}
+summary(aseviUpareni)
+boxplot(aseviUpareni)
+```
+T test nije pogodan za distribucije s teškim repovima.
 
+Hipoteze:
+$H_0: \mu_w - \mu_l = 0$
+$H_1: \mu_w - \mu_l > 0$
 
 ```{r}
-
+#Provedba t testa
+t.test(aseviUpareni, alt="greater")
 ```
+Zbog male p-vrijednosti možemo zaključiti da broj ostvarenih aseva utječe na pobjedu u meču. 
 
+#### Jackknife
 
 ```{r}
-
+#Moj jack
+mx <- mean(aseviUpareni)
+ps <- numeric(length(aseviUpareni))
+n <- length(aseviUpareni)
+for(i in 1:length(aseviUpareni)){
+  ps[i] = n * mx - (n-1) * mean(c(aseviUpareni[-i]))
+}
+se <- sd(ps)/sqrt(n)
+j <- mean(ps)
+"Interval povjerenja 95%"
+"["
+(j - qt(0.975, n-1)*se)
+", "
+(j + qt(0.975, n-1)*se)
+"]"
 ```
 
+"Interval povjerenja 95% za aritmetičku sredinu"
+[1.647672, 1.725504]
 
-```{r}
-
-```
+Zato što srednja vrijednost $\mu = 0$ nije unutar 95% intervala procjene uzorka, mogu zaključiti da mogu odbaciti hipotezu $H_0$ uz nivo značajnosti 0.05.
