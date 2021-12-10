@@ -1,6 +1,6 @@
 ---
 title: "SAP  - Projekt - Analiza teniskih mečeva"
-author: "Bilić Ante, Paradžik Mario, Kaštelan Niko, Benjak Petar"
+author: "Benjak Petar, Bilić Ante, Kaštelan Niko, Paradžik Mario"
 output:
   html_document:
     df_print: paged
@@ -215,22 +215,25 @@ Možemo li temeljem danih varijabli predvidjeti pobjednika teniskog meča?
 Utječe li broj aseva na ishod pobjednika?
 
 ### Provjera normalnosti podataka
-
+Provjeravam uparene podatke broja aseva igrača koji je pobijedio (W)
+umanjene za broj aseva koje je ostvario igrač koji je izgubio (L).
 ```{r}
 aseviUpareni = c(tennisMatches$w_ace - tennisMatches$l_ace)
 ```
 
 ```{r}
-qqnorm(aseviUpareni, pch = 1, frame=FALSE, main="Asevi igrača koji su dobili")
+qqnorm(aseviUpareni, pch = 1, frame=FALSE, main="Brojevi aseva W - L")
 qqline(aseviUpareni, col="steelblue", lwd=2)
 
 hist(aseviUpareni, main="Broj aseva W - L", xlab = "Razlika aseva", ylab = "Frekvenicja")
 ```
+
 Podatci prate zvonikoliku krivulju, a t-test je robustan na ne normalnost.
 ```{r}
 summary(aseviUpareni)
 boxplot(aseviUpareni)
 ```
+
 T test nije pogodan za distribucije s teškim repovima.
 
 Hipoteze:
@@ -256,12 +259,8 @@ for(i in 1:length(aseviUpareni)){
 }
 se <- sd(ps)/sqrt(n)
 j <- mean(ps)
-"Interval povjerenja 95%"
-(j - qt(0.975, n-1)*se)
-(j + qt(0.975, n-1)*se)
+cat("Interval povjerenja od 99% za aritmetičku sredinu je [", (j - qt(0.995, n-1)*se), " ,", (j + qt(0.995, n-1)*se), "]")
 ```
 
-"Interval povjerenja 95% za aritmetičku sredinu"
-[1.647672, 1.725504]
-
-Zato što srednja vrijednost $\mu = 0$ nije unutar 95% intervala procjene uzorka, mogu zaključiti da mogu odbaciti hipotezu $H_0$ uz nivo značajnosti 0.05.
+Zato što srednja vrijednost $\mu = 0$ nije unutar 99% intervala procjene uzorka, 
+zaključujem da mogu odbaciti hipotezu $H_0$.
