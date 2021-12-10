@@ -75,7 +75,7 @@ dim(tennisMatches)
 ```
 
 ## Problem 1
-Možemo li nešto zaključiti iz distribucije visine najboljih deset igrača u posljednjih 30 godina u odnosu na distribuciju visine igrača koji nisu bili tako uspješni?
+###Možemo li nešto zaključiti iz distribucije visine najboljih deset igrača u posljednjih 30 godina u odnosu na distribuciju visine igrača koji nisu bili tako uspješni?
 
 Potrebno je izdvojiti visine tenisača u dva različita skupa podataka. Prvi skup podataka sadrži sve visine igrača koji su u trenutku odigravanje meča bili u top deset najboljih tenisača. Drugi skup podataka sadrži sve visine igrača koji u trenutku odigravanje meča nisu bili u top deset najboljih tenisača.
 
@@ -176,7 +176,7 @@ Iz provedenog testa ne možemo zaključiti da visina izravno utječe na uspješn
 
 
 ## Problem 2
-Predviđa li pobjeda prvog seta pobjedu cijelog meča?
+###Predviđa li pobjeda prvog seta pobjedu cijelog meča?
 
 Potrebno je izdvojiti sve mečeve u kojima je podijedio onaj tenisać koji je pobijedio i prvi set.
 
@@ -204,7 +204,7 @@ Iz provedenih testova možemo zaključiti korelaciju podbjede prvog seta u svezi
 
 
 ## Problem 3
-Možemo li temeljem danih varijabli predvidjeti pobjednika teniskog meča?
+###Možemo li temeljem danih varijabli predvidjeti pobjednika teniskog meča?
 ```{r}
 
 ```
@@ -212,15 +212,133 @@ Možemo li temeljem danih varijabli predvidjeti pobjednika teniskog meča?
 
 
 ##Problem 4
-Utječe li broj aseva na ishod pobjednika?
+###Utječe li broj aseva na ishod pobjednika?
 ```{r}
 
 ```
 
+##Problem 5
+###Utječe li količina dobivenog prvog servisa na ishod pobjednika?
 
+Potrebno je izdvojiti broj dobivenog prvog servisa igrača koji su pobijedili meč i broj dobivenog prvog servisa igrača koji su izgubili meč te ispitati zavisnost broja dogivenog prvog servisa o ishodu pobjednika.
+
+###Izdvajanje podataka i prikaz
 ```{r}
+brojDobivenogPrvogServisaPobjednik = tennisMatches$w_1stWon
+brojDobivenogPrvogServisaGubitnik = tennisMatches$l_1stWon
+
+#uklanjanje nedostajećih vrijednosti
+brojDobivenogPrvogServisaPobjednik = na.omit(brojDobivenogPrvogServisaPobjednik)
+brojDobivenogPrvogServisaGubitnik = na.omit(brojDobivenogPrvogServisaGubitnik)
+
+
+summary(brojDobivenogPrvogServisaPobjednik)
+summary(brojDobivenogPrvogServisaGubitnik)
+```
+Iz prikaza medijana, srednje vrijednosti te maximuma i minimuma podataka odlučit ćemo se za uklanjanje stršećih vrijednosti kako one nebi utjecale na ishod zaključka.
+
+###Uklanjanje stršećih vrijednosti
+```{r}
+Q = quantile(brojDobivenogPrvogServisaPobjednik, probs = c(.1, .9))
+iqr = IQR(brojDobivenogPrvogServisaPobjednik)
+
+brojDobivenogPrvogServisaPobjednik = subset(brojDobivenogPrvogServisaPobjednik,                     brojDobivenogPrvogServisaPobjednik > (Q[1] - 1.5*iqr) &
+        brojDobivenogPrvogServisaPobjednik < (Q[1] + 1.5*iqr))
+
+
+summary(brojDobivenogPrvogServisaPobjednik)
+
+Q = quantile(brojDobivenogPrvogServisaGubitnik, probs = c(.1, .9))
+iqr = IQR(brojDobivenogPrvogServisaGubitnik)
+
+brojDobivenogPrvogServisaGubitnik = subset(brojDobivenogPrvogServisaGubitnik,                       brojDobivenogPrvogServisaGubitnik > (Q[1] - 1.5*iqr) &
+        brojDobivenogPrvogServisaGubitnik < (Q[1] + 1.5*iqr))
+
+
+summary(brojDobivenogPrvogServisaGubitnik)
+```
+
+
+###Pregled distribucija broja dobivenog prvog servisa pobjednika i gubitnika meča
+```{r}
+upareniBrojDobivenogPrvogServisa = c(brojDobivenogPrvogServisaPobjednik -                         brojDobivenogPrvogServisaGubitnik)
+
+hist(upareniBrojDobivenogPrvogServisa 
+      ,breaks = 20
+      ,xlab = "Broj dobivenog prvog servisa"
+      ,ylab = "Broj pobjednika meča"
+      ,main = "Distribucija broja dobivenog prvog servisa pobjednika meča")
+
+hist(brojDobivenogPrvogServisaPobjednik 
+      ,xlim = c(0, 50)
+      ,breaks = 20
+      ,xlab = "Broj dobivenog prvog servisa"
+      ,ylab = "Broj pobjednika meča"
+      ,main = "Distribucija broja dobivenog prvog servisa pobjednika meča")
+
+
+hist(brojDobivenogPrvogServisaGubitnik
+      ,xlim = c(0, 50)
+      ,breaks = 20
+      ,xlab = "Broj dobivenog prvog servisa"
+      ,ylab = "Broj gubitnika meča"
+      ,main = "Distribucija broja dobivenog prvog servisa gubitnika meča")
+```
+
+Iz histograma, srednjih vrijednosti te medijana danih podataka, može se naslutiti da broj dobivenog prvog servisa utječe na ishod pobjednika.
+
+Histogram uparenih podataka ima znovolik oblik. Provjerimo normalnost i qq dijagramom.
+
+
+###QQ-dijagram
+```{r}
+qqnorm(upareniBrojDobivenogPrvogServisa
+       , pch=1
+       , frame=FALSE
+       , main="Upareni podaci broja dobivenog prvog servisa pobjednika i gubitnika")
+qqline(upareniBrojDobivenogPrvogServisa, col="steelblue", lwd=2)
 
 ```
+
+Pregledom dijagrama možemo koristiti pretpostavku o normalnosti uparenih podataka.
+
+
+###Testiranje jednakosti varijanci
+
+Kako bi se moglo odlučiti koji će se test koristiti potrebno je provesti test o jednakosti varijanci broja dobivenog prvog servisa pobjednika u odnosu na broj dobivenog prvog servisa gubitnika.
+
+```{r}
+varPobjednik = var(brojDobivenogPrvogServisaPobjednik)
+varGubitnik = var(brojDobivenogPrvogServisaGubitnik)
+
+cat('Varijanca broja dobivenog prvog servisa pobjednika: ', varPobjednik, '\n')
+cat('Varijanca broja dobivenog prvog servisa gubitnika: ', varGubitnik, '\n')
+```
+```{r}
+var.test(brojDobivenogPrvogServisaPobjednik, brojDobivenogPrvogServisaGubitnik)
+```
+
+Zaključak:
+Na razini značajnosti od 1% može se zaključiti da varijance broja dobivenog prvog servisa pobjednika i broja dobivenog prvog servisa gubitnika nisu jednake.
+
+
+###Testiranje hipoteze
+
+Za testiranje utjecaja broja prvog servisa na ishod pobjednika koristi se t test sa nepoznatim te nejednakim varijancama.
+
+Hipoteze:
+
+$H_0: \w_1stWon - \l_1stWon = 0$
+$H_0: \w_1stWon - \l_1stWon > 0$
+```{r}
+t.test(upareniBrojDobivenogPrvogServisa
+       , alternative = "greater"
+       , var.equal = FALSE)
+```
+
+Zaključak:
+Iz provedenog testa možemo pri razini signifikantnosti od 5% zaključiti da je broj dobivenog prvog servisa pobjednika meča veći od broja dobivenog prvog servisa gubitnika meča premda je dobivena p-vrijednost manja od 2.2e-16.
+
 
 
 ```{r}
