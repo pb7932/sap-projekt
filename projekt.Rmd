@@ -214,8 +214,15 @@ Možemo li temeljem danih varijabli predvidjeti pobjednika teniskog meča?
 ## Problem 4
 Utječe li broj aseva na ishod pobjednika?
 
-### Provjera normalnosti podataka
-Provjeravam uparene podatke broja aseva igrača koji je pobijedio (W)
+Zato što u jednom meču podatci broja aseva pobjednika i asevi broja gubitnika ovisi o igračima koji igraju,
+ne mogu promatrati distribucije odvojeno, stoga zaključujem da trebam provjeriti je li broj aseva koji je ostvario
+pobjednik statistički značajno veći da bi se zaključila povezanost broja aseva i ishoda meča.
+
+#### Provjera normalnosti podataka
+Provjeravam jesu li ispunjeni uvjeti za provedbu t testa
+
+
+Provjeravam normalnost uparenih podataka broja aseva igrača koji je pobijedio (W)
 umanjene za broj aseva koje je ostvario igrač koji je izgubio (L).
 ```{r}
 aseviUpareni = c(tennisMatches$w_ace - tennisMatches$l_ace)
@@ -224,43 +231,36 @@ aseviUpareni = c(tennisMatches$w_ace - tennisMatches$l_ace)
 ```{r}
 qqnorm(aseviUpareni, pch = 1, frame=FALSE, main="Brojevi aseva W - L")
 qqline(aseviUpareni, col="steelblue", lwd=2)
+```
 
+Iz QQ dijagrama vidim da podatci imaju odstupanja od normalne distribucije.
+```{r}
 hist(aseviUpareni, main="Broj aseva W - L", xlab = "Razlika aseva", ylab = "Frekvenicja")
 ```
 
-Podatci prate zvonikoliku krivulju, a t-test je robustan na ne normalnost.
+Podatci prate zvonoliku krivulju, a t-test je robustan na ne normalnost, 
+tj. distribucija uzorka ne mora biti normala da bi t test dao ispravne rezultate,
+ ali po obliku mora pratiti normalnu krivulju.
 ```{r}
 summary(aseviUpareni)
 boxplot(aseviUpareni)
 ```
 
-T test nije pogodan za distribucije s teškim repovima.
+
+#### Provodim jednostrani T test
 
 Hipoteze:
 $H_0: \mu_w - \mu_l = 0$
 $H_1: \mu_w - \mu_l > 0$
 
+
 ```{r}
 #Provedba t testa
 t.test(aseviUpareni, alt="greater")
 ```
-Zbog male p-vrijednosti možemo zaključiti da broj ostvarenih aseva utječe na pobjedu u meču. 
 
-#### Jackknife
+#### Zaključak
 
-```{r}
-aseviUpareni <- na.omit(aseviUpareni)
-
-mx <- mean(aseviUpareni)
-ps <- numeric(length(aseviUpareni))
-n <- length(aseviUpareni)
-for(i in 1:length(aseviUpareni)){
-  ps[i] = n * mx - (n-1) * mean(c(aseviUpareni[-i]))
-}
-se <- sd(ps)/sqrt(n)
-j <- mean(ps)
-cat("Interval povjerenja od 99% za aritmetičku sredinu je [", (j - qt(0.995, n-1)*se), " ,", (j + qt(0.995, n-1)*se), "]")
-```
-
-Zato što srednja vrijednost $\mu = 0$ nije unutar 99% intervala procjene uzorka, 
-zaključujem da mogu odbaciti hipotezu $H_0$.
+Zbog male p-vrijednosti mogu odbaciti hipotezu $H_0$ i zaključiti da broj ostvarenih aseva igrača koji je pobijedio je statistički značajno veće
+na dostupnom uzorku nego od broja aseva koje je ostvario igrač koji je izgubio,
+stoga zaključujem da broj ostvarenih aseva utječe na pobjedu u meču.
