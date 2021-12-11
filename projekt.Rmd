@@ -2,9 +2,9 @@
 title: "SAP  - Projekt - Analiza teniskih mečeva"
 author: "Benjak Petar, Bilić Ante, Kaštelan Niko, Paradžik Mario"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -329,30 +329,30 @@ summary(tennisMatchesPrviServis$l_1stWon)
 ```
 
 
-### Pregled distribucija broja dobivenog prvog servisa pobjednika i gubitnika meča
+### Pregled distribucija uparenih podataka broja dobivenog prvog servisa pobjednika i gubitnika meča
 ```{r}
 upareniBrojDobivenogPrvogServisa = c(brojDobivenogPrvogServisaPobjednik -                         brojDobivenogPrvogServisaGubitnik)
 
 hist(upareniBrojDobivenogPrvogServisa 
       ,breaks = 40
-      ,xlab = "Broj dobivenog prvog servisa"
-      ,ylab = "Broj pobjednika meča"
-      ,main = "Distribucija broja dobivenog prvog servisa pobjednika meča")
+      ,xlab = "Upareni broj dobivenog prvog servisa"
+      ,ylab = "Broj ishoda"
+      ,main = "Distribucija uparenih podataka broja dobivenog prvog servisa")
 
 hist(brojDobivenogPrvogServisaPobjednik 
       ,xlim = c(0, 50)
       ,breaks = 80
       ,xlab = "Broj dobivenog prvog servisa"
-      ,ylab = "Broj pobjednika meča"
-      ,main = "Distribucija broja dobivenog prvog servisa pobjednika meča")
+      ,ylab = "Broj pobjednika"
+      ,main = "Distribucija broja dobivenog prvog servisa pobjednika")
 
 
 hist(brojDobivenogPrvogServisaGubitnik
       ,xlim = c(0, 50)
       ,breaks = 80
       ,xlab = "Broj dobivenog prvog servisa"
-      ,ylab = "Broj gubitnika meča"
-      ,main = "Distribucija broja dobivenog prvog servisa gubitnika meča")
+      ,ylab = "Broj gubitnika"
+      ,main = "Distribucija broja dobivenog prvog servisa gubitnika")
 ```
 
 Iz histograma, srednjih vrijednosti te medijana danih podataka, može se naslutiti da broj dobivenog prvog servisa utječe na ishod pobjednika.
