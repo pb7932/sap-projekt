@@ -307,8 +307,6 @@ tennisMatchesPrviServis = subset(tennisMatches
                                  tennisMatches$l_1stWon > (Q_l[1] - 1.5*iqr_l) &
                                  tennisMatches$l_1stWon < (Q_l[2] + 1.5*iqr_l))
 
-length(tennisMatches$w_1stWon)
-length(tennisMatches$l_1stWon)
 
 #brojDobivenogPrvogServisaPobjednik = subset(brojDobivenogPrvogServisaPobjednik,                     brojDobivenogPrvogServisaPobjednik > (Q[1] - 1.5*iqr) &
 #        brojDobivenogPrvogServisaPobjednik < (Q[2] + 1.5*iqr))
