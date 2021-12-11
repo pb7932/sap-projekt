@@ -241,7 +241,7 @@ hist(aseviUpareni, main="Broj aseva W - L", xlab = "Razlika aseva", ylab = "Frek
 ```
 
 Podatci prate zvonoliku krivulju, a t-test je robustan na ne normalnost, 
-tj. distribucija uzorka ne mora biti normala da bi t test dao ispravne rezultate,
+tj. distribucija uzorka ne mora biti normalna da bi t test dao ispravne rezultate,
  ali po obliku mora pratiti normalnu krivulju.
 ```{r}
 summary(aseviUpareni)
@@ -267,6 +267,8 @@ Zbog male p-vrijednosti mogu odbaciti hipotezu $H_0$ i zaključiti da broj ostva
 na dostupnom uzorku nego od broja aseva koje je ostvario igrač koji je izgubio,
 stoga zaključujem da broj ostvarenih aseva utječe na pobjedu u meču.
 
+
+
 ## Problem 5
 ### Utječe li količina dobivenog prvog servisa na ishod pobjednika?
 
@@ -281,31 +283,51 @@ brojDobivenogPrvogServisaGubitnik = tennisMatches$l_1stWon
 brojDobivenogPrvogServisaPobjednik = na.omit(brojDobivenogPrvogServisaPobjednik)
 brojDobivenogPrvogServisaGubitnik = na.omit(brojDobivenogPrvogServisaGubitnik)
 
-
+cat('Pregled podataka o broju dobivenog prvog servisa pobjednika\n')
 summary(brojDobivenogPrvogServisaPobjednik)
+
+cat('\nPregled podataka o broju dobivenog prvog servisa gubitnika\n')
 summary(brojDobivenogPrvogServisaGubitnik)
 ```
 Iz prikaza medijana, srednje vrijednosti te maximuma i minimuma podataka odlučit ćemo se za uklanjanje stršećih vrijednosti kako one nebi utjecale na ishod zaključka.
 
 ### Uklanjanje stršećih vrijednosti
 ```{r}
-Q = quantile(brojDobivenogPrvogServisaPobjednik, probs = c(.1, .9))
-iqr = IQR(brojDobivenogPrvogServisaPobjednik)
-
-brojDobivenogPrvogServisaPobjednik = subset(brojDobivenogPrvogServisaPobjednik,                     brojDobivenogPrvogServisaPobjednik > (Q[1] - 1.5*iqr) &
-        brojDobivenogPrvogServisaPobjednik < (Q[1] + 1.5*iqr))
 
 
-summary(brojDobivenogPrvogServisaPobjednik)
+Q_w = quantile(brojDobivenogPrvogServisaPobjednik, probs = c(.1, .9))
+iqr_w = IQR(brojDobivenogPrvogServisaPobjednik) / 1.349
 
-Q = quantile(brojDobivenogPrvogServisaGubitnik, probs = c(.1, .9))
-iqr = IQR(brojDobivenogPrvogServisaGubitnik)
+Q_l = quantile(brojDobivenogPrvogServisaGubitnik, probs = c(.1, .9))
+iqr_l = IQR(brojDobivenogPrvogServisaGubitnik) / 1.349
 
-brojDobivenogPrvogServisaGubitnik = subset(brojDobivenogPrvogServisaGubitnik,                       brojDobivenogPrvogServisaGubitnik > (Q[1] - 1.5*iqr) &
-        brojDobivenogPrvogServisaGubitnik < (Q[1] + 1.5*iqr))
+tennisMatchesPrviServis = subset(tennisMatches
+                                ,tennisMatches$w_1stWon > (Q_w[1] - 1.5*iqr_w) &
+                                 tennisMatches$w_1stWon < (Q_w[2] + 1.5*iqr_w) &
+                                 tennisMatches$l_1stWon > (Q_l[1] - 1.5*iqr_l) &
+                                 tennisMatches$l_1stWon < (Q_l[2] + 1.5*iqr_l))
+
+length(tennisMatches$w_1stWon)
+length(tennisMatches$l_1stWon)
+
+#brojDobivenogPrvogServisaPobjednik = subset(brojDobivenogPrvogServisaPobjednik,                     brojDobivenogPrvogServisaPobjednik > (Q[1] - 1.5*iqr) &
+#        brojDobivenogPrvogServisaPobjednik < (Q[2] + 1.5*iqr))
 
 
-summary(brojDobivenogPrvogServisaGubitnik)
+
+#brojDobivenogPrvogServisaGubitnik = subset(brojDobivenogPrvogServisaGubitnik,                       brojDobivenogPrvogServisaGubitnik > (Q[1] - 1.5*iqr) &
+#        brojDobivenogPrvogServisaGubitnik < (Q[2] + 1.5*iqr))
+
+#brojDobivenogPrvogServisaGubitnik = head(brojDobivenogPrvogServisaGubitnik, length(brojDobivenogPrvogServisaPobjednik) - length(brojDobivenogPrvogServisaGubitnik))
+
+```
+
+```{r}
+cat('Pregled podataka o broju dobivenog prvog servisa pobjednika\n')
+summary(tennisMatchesPrviServis$w_1stWon)
+
+cat('\nPregled podataka o broju dobivenog prvog servisa gubitnika\n')
+summary(tennisMatchesPrviServis$l_1stWon)
 ```
 
 
@@ -314,14 +336,14 @@ summary(brojDobivenogPrvogServisaGubitnik)
 upareniBrojDobivenogPrvogServisa = c(brojDobivenogPrvogServisaPobjednik -                         brojDobivenogPrvogServisaGubitnik)
 
 hist(upareniBrojDobivenogPrvogServisa 
-      ,breaks = 20
+      ,breaks = 40
       ,xlab = "Broj dobivenog prvog servisa"
       ,ylab = "Broj pobjednika meča"
       ,main = "Distribucija broja dobivenog prvog servisa pobjednika meča")
 
 hist(brojDobivenogPrvogServisaPobjednik 
       ,xlim = c(0, 50)
-      ,breaks = 20
+      ,breaks = 80
       ,xlab = "Broj dobivenog prvog servisa"
       ,ylab = "Broj pobjednika meča"
       ,main = "Distribucija broja dobivenog prvog servisa pobjednika meča")
@@ -329,7 +351,7 @@ hist(brojDobivenogPrvogServisaPobjednik
 
 hist(brojDobivenogPrvogServisaGubitnik
       ,xlim = c(0, 50)
-      ,breaks = 20
+      ,breaks = 80
       ,xlab = "Broj dobivenog prvog servisa"
       ,ylab = "Broj gubitnika meča"
       ,main = "Distribucija broja dobivenog prvog servisa gubitnika meča")
@@ -347,7 +369,6 @@ qqnorm(upareniBrojDobivenogPrvogServisa
        , frame=FALSE
        , main="Upareni podaci broja dobivenog prvog servisa pobjednika i gubitnika")
 qqline(upareniBrojDobivenogPrvogServisa, col="steelblue", lwd=2)
-
 ```
 
 Pregledom dijagrama možemo koristiti pretpostavku o normalnosti uparenih podataka.
@@ -364,6 +385,7 @@ varGubitnik = var(brojDobivenogPrvogServisaGubitnik)
 cat('Varijanca broja dobivenog prvog servisa pobjednika: ', varPobjednik, '\n')
 cat('Varijanca broja dobivenog prvog servisa gubitnika: ', varGubitnik, '\n')
 ```
+
 ```{r}
 var.test(brojDobivenogPrvogServisaPobjednik, brojDobivenogPrvogServisaGubitnik)
 ```
@@ -378,12 +400,17 @@ Za testiranje utjecaja broja prvog servisa na ishod pobjednika koristi se t test
 
 Hipoteze:
 
-$H_0: \w_1stWon - \l_1stWon = 0$
-$H_0: \w_1stWon - \l_1stWon > 0$
+$H_0: \mu_w - \mu_l = 0$
+$H_0: \mu_w - \mu_l > 0$
 ```{r}
 t.test(upareniBrojDobivenogPrvogServisa
        , alternative = "greater"
        , var.equal = FALSE)
+
+#t.test(brojDobivenogPrvogServisaPobjednik
+#       , brojDobivenogPrvogServisaGubitnik
+#       , alternative = "greater"
+#       , var.equal = FALSE)
 ```
 
 Zaključak:
