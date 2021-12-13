@@ -22,7 +22,7 @@ library(tidyverse)
 
 ### Učitavanje podataka
 ```{r}
-tennisMatches = read.csv('tennis_atp_matches.csv')
+tennisMatches <- read.csv("tennis_atp_matches.csv")
 ```
 
 ### Dimenzija podataka
@@ -49,9 +49,11 @@ sapply(tennisMatches, class)
 Kod učitavanja podataka može doći do situacije gdje se tipovi podatak pogrešno prepoznaju
 pa ih je potrebno ručno izmijeniti. U ovom se slučaju krivo prepoznaju tipovi varijabli: tourney_date, winner_id te loser_id.
 ```{r}
-tennisMatches = tennisMatches %>% mutate(tourney_date = as.Date(as.character(tourney_date), "%Y%m%d"),
-                  winner_id = as.factor(winner_id),
-                  loser_id = as.factor(loser_id))
+tennisMatches <- tennisMatches %>% mutate(
+  tourney_date = as.Date(as.character(tourney_date), "%Y%m%d"),
+  winner_id = as.factor(winner_id),
+  loser_id = as.factor(loser_id)
+)
 ```
 
 ```{r}
@@ -61,16 +63,16 @@ summary(tennisMatches)
 ### Traženje nedostajućih vrijednosti
 Dani skup podataka nerijetko sadrži nedostajuće podatke. Rad nad takvim podacima može dovesti do pogrešaka u testiranju hipoteza i zaključivanju. Varijable s velikim udjelom nedostajućih vrijednosti odbacujemo iz skupa podataka.
 ```{r}
-for (col_name in names(tennisMatches)){
-  if (sum(is.na(tennisMatches[,col_name])) > 0){
-    cat('Ukupno nedostajućih vrijednosti za varijablu ',col_name, ': ', sum(is.na(tennisMatches[,col_name])),'\n')
+for (col_name in names(tennisMatches)) {
+  if (sum(is.na(tennisMatches[, col_name])) > 0) {
+    cat("Ukupno nedostajućih vrijednosti za varijablu ", col_name, ": ", sum(is.na(tennisMatches[, col_name])), "\n")
   }
 }
 ```
 
 Varijabla winner_seed ima 59% nedostajućih vrijednosti, a varijabla loser_seed ima 78% nedostajućih vrijednosti što znači da nam ne daju puno informacija o teniskim mečevima pa se takve varijable uklanjanju iz skupa podataka.
 ```{r}
-tennisMatches = select(tennisMatches, -c("winner_seed", "loser_seed"))
+tennisMatches <- select(tennisMatches, -c("winner_seed", "loser_seed"))
 dim(tennisMatches)
 ```
 
@@ -81,32 +83,32 @@ Potrebno je izdvojiti visine tenisača u dva različita skupa podataka. Prvi sku
 
 ```{r}
 # Spremanje visina igrača koji su u trenutku igranja meča u top deset najboljih
-topTenWinnerHeight = tennisMatches[tennisMatches$winner_rank <= 10, ]$winner_ht
-topTenLosserHeight = tennisMatches[tennisMatches$loser_rank <= 10, ]$loser_ht
+topTenWinnerHeight <- tennisMatches[tennisMatches$winner_rank <= 10, ]$winner_ht
+topTenLosserHeight <- tennisMatches[tennisMatches$loser_rank <= 10, ]$loser_ht
 
-topTenHeight = append(topTenWinnerHeight, topTenLosserHeight)
+topTenHeight <- append(topTenWinnerHeight, topTenLosserHeight)
 
 
 # Odbacivanje nedostajećih vrijednosti
-topTenHeight = topTenHeight[complete.cases(topTenHeight)]
+topTenHeight <- topTenHeight[complete.cases(topTenHeight)]
 summary(topTenHeight)
 
-hist(topTenHeight,  xlab="Visina igrača", ylab="Frekvencija", main="Visina igrača koji su u top deset najboljih")
+hist(topTenHeight, xlab = "Visina igrača", ylab = "Frekvencija", main = "Visina igrača koji su u top deset najboljih")
 ```
 
 
 ```{r}
 # Spremanje visina igrača koji u trenutku igranja meča nisu u top deset najboljih
-notTopTenWinnerHeight = tennisMatches[tennisMatches$winner_rank > 10, ]$winner_ht
-noTopTenLosserHeight = tennisMatches[tennisMatches$loser_rank > 10, ]$loser_ht
+notTopTenWinnerHeight <- tennisMatches[tennisMatches$winner_rank > 10, ]$winner_ht
+noTopTenLosserHeight <- tennisMatches[tennisMatches$loser_rank > 10, ]$loser_ht
 
-notTopTenHeight = append(notTopTenWinnerHeight, noTopTenLosserHeight)
+notTopTenHeight <- append(notTopTenWinnerHeight, noTopTenLosserHeight)
 
 # Odbacivanje nedostajećih vrijednosti
-notTopTenHeight = notTopTenHeight[complete.cases(notTopTenHeight)]
+notTopTenHeight <- notTopTenHeight[complete.cases(notTopTenHeight)]
 summary(notTopTenHeight)
 
-hist(notTopTenHeight, xlab="Visina igrača", ylab="Frekvencija", main="Visina igrača koji nisu u top deset najboljih")
+hist(notTopTenHeight, xlab = "Visina igrača", ylab = "Frekvencija", main = "Visina igrača koji nisu u top deset najboljih")
 ```
 
 Prije određivanja testa potrebno je provjeriti normalnost podataka.
@@ -114,15 +116,15 @@ Prije određivanja testa potrebno je provjeriti normalnost podataka.
 # Histogram te QQ-dijagram upućuju na normalnost podataka visine top deset najboljih igrača.
 ```{r}
 # QQ-dijagram
-qqnorm(topTenHeight, pch = 1, frame=FALSE, main="Visina top deset najboljih igrača")
-qqline(topTenHeight, col="steelblue", lwd=2)
+qqnorm(topTenHeight, pch = 1, frame = FALSE, main = "Visina top deset najboljih igrača")
+qqline(topTenHeight, col = "steelblue", lwd = 2)
 ```
 
 Histogram te QQ-dijagram upućuju na normalnost podataka visine igrača koji nisu u top deset najboljih.
 ```{r}
 # QQ-dijagram
-qqnorm(notTopTenHeight, pch = 1, frame=FALSE, main="Visina igrača koji nisu u top deset najboljih")
-qqline(notTopTenHeight, col="steelblue", lwd=2)
+qqnorm(notTopTenHeight, pch = 1, frame = FALSE, main = "Visina igrača koji nisu u top deset najboljih")
+qqline(notTopTenHeight, col = "steelblue", lwd = 2)
 ```
 
 Pod pretpostavkom da visine igrača prate normalnu distribuciju nastavlja testiranje povezanosti visine i uspješnosti igrača, koristi se t-test.
@@ -137,10 +139,10 @@ $H_1$: očekivanje visine igrača koji su u top deset najboljih je veće od oče
 ### Provjera jednakosti varijanci
 
 ```{r}
-varTopTen = var(topTenHeight)
-varNotTopTen = var(notTopTenHeight)
-cat('Varijanca top deset najboljih igrača: ', varTopTen, '\n')
-cat('Varijanca igrača izvan top deset najboljih: ', varNotTopTen)
+varTopTen <- var(topTenHeight)
+varNotTopTen <- var(notTopTenHeight)
+cat("Varijanca top deset najboljih igrača: ", varTopTen, "\n")
+cat("Varijanca igrača izvan top deset najboljih: ", varNotTopTen)
 ```
 
 
@@ -183,19 +185,52 @@ Potrebno je izdvojiti sve mečeve u kojima je pobijedio onaj tenisač koji je po
 Podaci o setovima mogu sadržavati W/O koji označuju predaju ili diskvalifikaciju, pa te takve podatke potrebno ukloniti iz skupa podataka.
 ```{r}
 # Uklanjanje mečeva kojima je score W/O
-tennisMatchesSet = tennisMatches[!is.na(as.numeric(substr(tennisMatches$score, 1, 1))), ]
+tennisMatchesSet <- tennisMatches[!is.na(as.numeric(substr(tennisMatches$score, 1, 1))), ]
+
+#Izdvajanje rezultata
+scores <- tennisMatchesSet$score
+
+#Dohvaćanje prvog seta
+firstSet <- substr(scores, 1, 3)
+
+```
+
+Sada preslikavam podatke u 1 i -1, tj. ako je pobjednik dobio prvi set tada rezultat označavam s 1, 
+a ako je gubitnik dobio prvi set tada to oznčavam s -1.
+Ako pobjeda prvog seta nije povezana s pobjedom meča, 
+tada očekujem da će srednja vrijednost biti oko 0
+```{r}
+eFunc <- function(strSet){
+  wScore = as.numeric(substr(strSet, 1 , 1))
+  lScore = as.numeric(substr(strSet, 3,3))
+  if(wScore > lScore){
+    #W je pobijedio prvi set
+    return(1)
+  }else if(lScore > wScore){
+     #L je dobio prvi set
+     return(-1)
+  }else{
+    return(0)
+  }
+}
+
+extractedData <- c()
+
+for(i in firstSet){
+  extractedData <- c(extractedData, eFunc(i))
+}
+```
 
 
-wonFirstSetAndMatchMatches = tennisMatchesSet[substr(tennisMatchesSet$score, 1, 1) > substr(tennisMatchesSet$score, 3, 3), ]
+#### Provedba testa
 
-# Mečevi u kojima je pobjednik onaj koji je pobijedio prvi set
-wonFirstSetAndMatchCount = dim(wonFirstSetAndMatchMatches)[1]
+Testiram, razlikuje li se srednja vrijednost statistički značajno od 0
 
-lostFirstSetAnWonMatchMatches = tennisMatchesSet[substr(tennisMatchesSet$score, 1, 1) < substr(tennisMatchesSet$score, 3, 3), ]
+$$H_0: \mu = 0$$
+$$H_1: \mu > 1$$
 
-# Mečevi u kojima je pobjednik onaj koji nije pobijedio prvi set
-lostFirstSetAndWonMatchCount = dim(lostFirstSetAnWonMatchMatches)[1]
-
+```{r}
+t.test(extractedData, alt="greater")
 ```
 
 
@@ -226,18 +261,18 @@ Provjeravam jesu li ispunjeni uvjeti za provedbu t testa
 Provjeravam normalnost uparenih podataka broja aseva igrača koji je pobijedio (W)
 umanjene za broj aseva koje je ostvario igrač koji je izgubio (L).
 ```{r}
-aseviUpareni = c(tennisMatches$w_ace - tennisMatches$l_ace)
+aseviUpareni <- c(tennisMatches$w_ace - tennisMatches$l_ace)
 ```
 
 
 ```{r}
-qqnorm(aseviUpareni, pch = 1, frame=FALSE, main="Brojevi aseva W - L")
-qqline(aseviUpareni, col="steelblue", lwd=2)
+qqnorm(aseviUpareni, pch = 1, frame = FALSE, main = "Brojevi aseva W - L")
+qqline(aseviUpareni, col = "steelblue", lwd = 2)
 ```
 
 Iz QQ dijagrama vidim da podatci imaju odstupanja od normalne distribucije.
 ```{r}
-hist(aseviUpareni, main="Broj aseva W - L", xlab = "Razlika aseva", ylab = "Frekvenicja")
+hist(aseviUpareni, main = "Broj aseva W - L", xlab = "Razlika aseva", ylab = "Frekvenicja")
 ```
 
 Podatci prate zvonoliku krivulju, a t-test je robustan na ne normalnost, 
@@ -257,8 +292,8 @@ $$H_1: \mu_w - \mu_l > 0$$
 
 
 ```{r}
-#Provedba t testa
-t.test(aseviUpareni, alt="greater")
+# Provedba t testa
+t.test(aseviUpareni, alt = "greater")
 ```
 
 #### Zaključak
@@ -276,17 +311,17 @@ Potrebno je izdvojiti broj dobivenog prvog servisa igrača koji su pobijedili me
 
 ### Izdvajanje podataka i prikaz
 ```{r}
-brojDobivenogPrvogServisaPobjednik = tennisMatches$w_1stWon
-brojDobivenogPrvogServisaGubitnik = tennisMatches$l_1stWon
+brojDobivenogPrvogServisaPobjednik <- tennisMatches$w_1stWon
+brojDobivenogPrvogServisaGubitnik <- tennisMatches$l_1stWon
 
-#uklanjanje nedostajećih vrijednosti
-brojDobivenogPrvogServisaPobjednik = na.omit(brojDobivenogPrvogServisaPobjednik)
-brojDobivenogPrvogServisaGubitnik = na.omit(brojDobivenogPrvogServisaGubitnik)
+# uklanjanje nedostajećih vrijednosti
+brojDobivenogPrvogServisaPobjednik <- na.omit(brojDobivenogPrvogServisaPobjednik)
+brojDobivenogPrvogServisaGubitnik <- na.omit(brojDobivenogPrvogServisaGubitnik)
 
-cat('Pregled podataka o broju dobivenog prvog servisa pobjednika\n')
+cat("Pregled podataka o broju dobivenog prvog servisa pobjednika\n")
 summary(brojDobivenogPrvogServisaPobjednik)
 
-cat('\nPregled podataka o broju dobivenog prvog servisa gubitnika\n')
+cat("\nPregled podataka o broju dobivenog prvog servisa gubitnika\n")
 summary(brojDobivenogPrvogServisaGubitnik)
 ```
 Iz prikaza medijana, srednje vrijednosti te maximuma i minimuma podataka odlučit ćemo se za uklanjanje stršećih vrijednosti kako one nebi utjecale na ishod zaključka.
@@ -295,64 +330,68 @@ Iz prikaza medijana, srednje vrijednosti te maximuma i minimuma podataka odluči
 ```{r}
 
 
-Q_w = quantile(brojDobivenogPrvogServisaPobjednik, probs = c(.1, .9))
-iqr_w = IQR(brojDobivenogPrvogServisaPobjednik) / 1.349
+Q_w <- quantile(brojDobivenogPrvogServisaPobjednik, probs = c(.1, .9))
+iqr_w <- IQR(brojDobivenogPrvogServisaPobjednik) / 1.349
 
-Q_l = quantile(brojDobivenogPrvogServisaGubitnik, probs = c(.1, .9))
-iqr_l = IQR(brojDobivenogPrvogServisaGubitnik) / 1.349
+Q_l <- quantile(brojDobivenogPrvogServisaGubitnik, probs = c(.1, .9))
+iqr_l <- IQR(brojDobivenogPrvogServisaGubitnik) / 1.349
 
-tennisMatchesPrviServis = subset(tennisMatches
-                                ,tennisMatches$w_1stWon > (Q_w[1] - 1.5*iqr_w) &
-                                 tennisMatches$w_1stWon < (Q_w[2] + 1.5*iqr_w) &
-                                 tennisMatches$l_1stWon > (Q_l[1] - 1.5*iqr_l) &
-                                 tennisMatches$l_1stWon < (Q_l[2] + 1.5*iqr_l))
+tennisMatchesPrviServis <- subset(
+  tennisMatches,
+  tennisMatches$w_1stWon > (Q_w[1] - 1.5 * iqr_w) &
+    tennisMatches$w_1stWon < (Q_w[2] + 1.5 * iqr_w) &
+    tennisMatches$l_1stWon > (Q_l[1] - 1.5 * iqr_l) &
+    tennisMatches$l_1stWon < (Q_l[2] + 1.5 * iqr_l)
+)
 
 
-#brojDobivenogPrvogServisaPobjednik = subset(brojDobivenogPrvogServisaPobjednik,                     brojDobivenogPrvogServisaPobjednik > (Q[1] - 1.5*iqr) &
+# brojDobivenogPrvogServisaPobjednik = subset(brojDobivenogPrvogServisaPobjednik,                     brojDobivenogPrvogServisaPobjednik > (Q[1] - 1.5*iqr) &
 #        brojDobivenogPrvogServisaPobjednik < (Q[2] + 1.5*iqr))
 
 
 
-#brojDobivenogPrvogServisaGubitnik = subset(brojDobivenogPrvogServisaGubitnik,                       brojDobivenogPrvogServisaGubitnik > (Q[1] - 1.5*iqr) &
+# brojDobivenogPrvogServisaGubitnik = subset(brojDobivenogPrvogServisaGubitnik,                       brojDobivenogPrvogServisaGubitnik > (Q[1] - 1.5*iqr) &
 #        brojDobivenogPrvogServisaGubitnik < (Q[2] + 1.5*iqr))
 
-#brojDobivenogPrvogServisaGubitnik = head(brojDobivenogPrvogServisaGubitnik, length(brojDobivenogPrvogServisaPobjednik) - length(brojDobivenogPrvogServisaGubitnik))
-
+# brojDobivenogPrvogServisaGubitnik = head(brojDobivenogPrvogServisaGubitnik, length(brojDobivenogPrvogServisaPobjednik) - length(brojDobivenogPrvogServisaGubitnik))
 ```
 
 ```{r}
-cat('Pregled podataka o broju dobivenog prvog servisa pobjednika\n')
+cat("Pregled podataka o broju dobivenog prvog servisa pobjednika\n")
 summary(tennisMatchesPrviServis$w_1stWon)
 
-cat('\nPregled podataka o broju dobivenog prvog servisa gubitnika\n')
+cat("\nPregled podataka o broju dobivenog prvog servisa gubitnika\n")
 summary(tennisMatchesPrviServis$l_1stWon)
 ```
 
 
 ### Pregled distribucija uparenih podataka broja dobivenog prvog servisa pobjednika i gubitnika meča
 ```{r}
-upareniBrojDobivenogPrvogServisa = c(brojDobivenogPrvogServisaPobjednik -                         brojDobivenogPrvogServisaGubitnik)
+upareniBrojDobivenogPrvogServisa <- c(brojDobivenogPrvogServisaPobjednik - brojDobivenogPrvogServisaGubitnik)
 
-hist(upareniBrojDobivenogPrvogServisa 
-      ,breaks = 40
-      ,xlab = "Upareni broj dobivenog prvog servisa"
-      ,ylab = "Broj ishoda"
-      ,main = "Distribucija uparenih podataka broja dobivenog prvog servisa")
+hist(upareniBrojDobivenogPrvogServisa,
+  breaks = 40,
+  xlab = "Upareni broj dobivenog prvog servisa",
+  ylab = "Broj ishoda",
+  main = "Distribucija uparenih podataka broja dobivenog prvog servisa"
+)
 
-hist(brojDobivenogPrvogServisaPobjednik 
-      ,xlim = c(0, 50)
-      ,breaks = 80
-      ,xlab = "Broj dobivenog prvog servisa"
-      ,ylab = "Broj pobjednika"
-      ,main = "Distribucija broja dobivenog prvog servisa pobjednika")
+hist(brojDobivenogPrvogServisaPobjednik,
+  xlim = c(0, 50),
+  breaks = 80,
+  xlab = "Broj dobivenog prvog servisa",
+  ylab = "Broj pobjednika",
+  main = "Distribucija broja dobivenog prvog servisa pobjednika"
+)
 
 
-hist(brojDobivenogPrvogServisaGubitnik
-      ,xlim = c(0, 50)
-      ,breaks = 80
-      ,xlab = "Broj dobivenog prvog servisa"
-      ,ylab = "Broj gubitnika"
-      ,main = "Distribucija broja dobivenog prvog servisa gubitnika")
+hist(brojDobivenogPrvogServisaGubitnik,
+  xlim = c(0, 50),
+  breaks = 80,
+  xlab = "Broj dobivenog prvog servisa",
+  ylab = "Broj gubitnika",
+  main = "Distribucija broja dobivenog prvog servisa gubitnika"
+)
 ```
 
 Iz histograma, srednjih vrijednosti te medijana danih podataka, može se naslutiti da broj dobivenog prvog servisa utječe na ishod pobjednika.
@@ -362,11 +401,12 @@ Histogram uparenih podataka ima znovolik oblik. Provjerimo normalnost i qq dijag
 
 ### QQ-dijagram
 ```{r}
-qqnorm(upareniBrojDobivenogPrvogServisa
-       , pch=1
-       , frame=FALSE
-       , main="Upareni podaci broja dobivenog prvog servisa pobjednika i gubitnika")
-qqline(upareniBrojDobivenogPrvogServisa, col="steelblue", lwd=2)
+qqnorm(upareniBrojDobivenogPrvogServisa,
+  pch = 1,
+  frame = FALSE,
+  main = "Upareni podaci broja dobivenog prvog servisa pobjednika i gubitnika"
+)
+qqline(upareniBrojDobivenogPrvogServisa, col = "steelblue", lwd = 2)
 ```
 
 Pregledom dijagrama možemo koristiti pretpostavku o normalnosti uparenih podataka.
@@ -377,11 +417,11 @@ Pregledom dijagrama možemo koristiti pretpostavku o normalnosti uparenih podata
 Kako bi se moglo odlučiti koji će se test koristiti potrebno je provesti test o jednakosti varijanci broja dobivenog prvog servisa pobjednika u odnosu na broj dobivenog prvog servisa gubitnika.
 
 ```{r}
-varPobjednik = var(brojDobivenogPrvogServisaPobjednik)
-varGubitnik = var(brojDobivenogPrvogServisaGubitnik)
+varPobjednik <- var(brojDobivenogPrvogServisaPobjednik)
+varGubitnik <- var(brojDobivenogPrvogServisaGubitnik)
 
-cat('Varijanca broja dobivenog prvog servisa pobjednika: ', varPobjednik, '\n')
-cat('Varijanca broja dobivenog prvog servisa gubitnika: ', varGubitnik, '\n')
+cat("Varijanca broja dobivenog prvog servisa pobjednika: ", varPobjednik, "\n")
+cat("Varijanca broja dobivenog prvog servisa gubitnika: ", varGubitnik, "\n")
 ```
 
 ```{r}
@@ -401,11 +441,12 @@ Hipoteze:
 $H_0: \mu_w - \mu_l = 0$
 $H_0: \mu_w - \mu_l > 0$
 ```{r}
-t.test(upareniBrojDobivenogPrvogServisa
-       , alternative = "greater"
-       , var.equal = FALSE)
+t.test(upareniBrojDobivenogPrvogServisa,
+  alternative = "greater",
+  var.equal = FALSE
+)
 
-#t.test(brojDobivenogPrvogServisaPobjednik
+# t.test(brojDobivenogPrvogServisaPobjednik
 #       , brojDobivenogPrvogServisaGubitnik
 #       , alternative = "greater"
 #       , var.equal = FALSE)
