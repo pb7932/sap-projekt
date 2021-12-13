@@ -187,21 +187,30 @@ Podaci o setovima mogu sadržavati W/O koji označuju predaju ili diskvalifikaci
 # Uklanjanje mečeva kojima je score W/O
 tennisMatchesSet <- tennisMatches[!is.na(as.numeric(substr(tennisMatches$score, 1, 1))), ]
 
+#Izdvajanje rezultata
 scores <- tennisMatchesSet$score
 
+#Dohvaćanje prvog seta
 firstSet <- substr(scores, 1, 3)
 
+```
+
+Sada preslikavam podatke u 1 i -1, tj. ako je pobjednik dobio prvi set tada rezultat označavam s 1, 
+a ako je gubitnik dobio prvi set tada to oznčavam s -1.
+Ako pobjeda prvog seta nije povezana s pobjedom meča, 
+tada očekujem da će srednja vrijednost biti oko 0
+```{r}
 eFunc <- function(strSet){
   wScore = as.numeric(substr(strSet, 1 , 1))
   lScore = as.numeric(substr(strSet, 3,3))
   if(wScore > lScore){
     #W je pobijedio prvi set
-    return(as.numeric(1))
-  }else if (lScore > wScore) {
-     #L je pobijedio prvi set
-     return(as.numeric(-1))
+    return(1)
+  }else if(lScore > wScore){
+     #L je dobio prvi set
+     return(-1)
   }else{
-    return(as.numeric(0))
+    return(0)
   }
 }
 
@@ -210,30 +219,24 @@ extractedData <- c()
 for(i in firstSet){
   extractedData <- c(extractedData, eFunc(i))
 }
+```
 
-hist(extractedData)
 
-t.test(extractedData, alt="two.sided")
+#### Provedba testa
 
+Testiram, razlikuje li se srednja vrijednost statistički značajno od 0
+
+$$H_0: \mu = 0$$
+$$H_1: \mu > 1$$
+
+```{r}
+t.test(extractedData, alt="greater")
 ```
 
 
 Iz provedenih testova možemo zaključiti korelaciju podbjede prvog seta u svezi s pobjedom meča, ali ne možemo zaključiti da pobjeda prvog seta uzrokuje pobjedu meča.
 
-### Test uparenih vrijednosti
 
-Hipoteze uparenog t testa:
-$$ \begin{aligned}
-H_0&: \sigma_1^2 = \sigma_2^2 \\
-H_1&: \sigma_1^2 \ >\sigma_2^2
-\end{aligned} $$
-
-$H_0$: očekivanje da igrači koji pobjede prvi set i ujedino i meč jednako je igračima koji izgube prvi set, a pobjede meč
-$H_1$: očekivanje da igrači koji pobjede prvi set i ujedino i meč veće od očekivanja igrača koji izgube prvi set, a pobjede meč
-
-```{r}
-t.test(wonFirstSetAndMatchMatches, lostFirstSetAnWonMatchMatches, paired = TRUE, alternative = "two.sided")
-```
 
 ## Problem 3
 ###Možemo li temeljem danih varijabli predvidjeti pobjednika teniskog meča?
