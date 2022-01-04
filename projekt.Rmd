@@ -22,10 +22,7 @@ library(tidyverse)
 
 ### Učitavanje podataka
 ```{r}
-tennisMatches <- read.csv("tennis_atp_matches.csv")
-tennisMatchesOHB = read.csv('tennis_atp_matches_ohb.csv', sep = ';')
-tennisMatches$winner_ohb <- tennisMatchesOHB$winner_ohb
-tennisMatches$loser_ohb <- tennisMatchesOHB$loser_ohb
+tennisMatches <- read.csv("tennis_atp_matches_full.csv")
 ```
 
 ### Dimenzija podataka
@@ -299,7 +296,7 @@ stoga zaključujem da broj ostvarenih aseva utječe na pobjedu u meču.
 
 
 ### Opis i postupak
-Mnogi tenisači stavljaju veliki fokus na povećanje osvajanja poena prvim servisom pa se postavlja pitanje utječe i postotak osvojenosti poena prvim servisom na ishod pobjenika. 
+Mnogi tenisači stavljaju veliki fokus na povećanje osvajanja poena prvim servisom pa se postavlja pitanje utječe li postotak osvojenosti poena prvim servisom na ishod pobjenika. 
 
 Potrebno je izdvojiti postotak osvojenosti poena prvim servisom pobjenika mečeva i postotak osvojenosti poena prvim servisom gubitnika mečeva te ispitati njihov odnos.
 
@@ -402,7 +399,7 @@ $H_0$ : postotci dobivenosti poena prvim servisom pobjednika i gubitnika meča s
 $H_1$ : postotak dobivenosti poena prvim servisom je veći kod pobjednika u odnosu na gubitnike meča
 
 $H_0: \mu_w - \mu_l = 0$ 
-$H_0: \mu_w - \mu_l > 0$
+$H_1: \mu_w - \mu_l > 0$
 ```{r}
 t.test(p1WonW, p1WonL,
   alternative = "greater",
@@ -418,18 +415,29 @@ Na razini signifikantnosti od 1% odbacujemo nultu hipotezu te zaključujemo da j
 ## Problem 6
 ### Jesu li ljevaci nezgodniji protivnici dešnjacima koji igraju jednoručni backhand?
 
-Potrebno je usporediti odnos broja pobjeda te gubitaka igrača koji je dešnjak i igra jednoručni backhand kada igra protiv ljevaka te kada igra protiv dešnjaka.
+### Opis i postupak
+U tenisu se ljevaci smatraju nezgodnim protivnicima dešnjaka zbog načina na koji dešnjaci moraju igrati protiv njih. Također, jednoručni backhand se smatra superiornom tehnikom u odnosu na klasični backhand ako ga je igrač usavršio. Postavlja se pitanje jesu li ljevaci nezgodniji protivnici i onim dešnjacima koji igraju jednoručni backhand. Potrebno je usporediti odnos broja pobjeda te gubitaka igrača koji je dešnjak i igra jednoručni backhand kada igra protiv ljevaka te kada igra protiv dešnjaka.
 
+### Korišten test
+Hipotezu ćemo testirati Hi-kvadrat testom za jednakost proporcija.
+
+$$\chi^2 = \sum_{i = 1}^{n} \frac{(O_i - E_i)^2} {E_i}$$
 
 ### Izdvajanje podataka i pregled
 ```{r message=FALSE, warning=FALSE, echo=FALSE}
-rightVSohbWinner = tennisMatchesOHB[tennisMatchesOHB$winner_ohb == "TRUE" & tennisMatchesOHB$winner_hand == "R" & tennisMatchesOHB$loser_hand == "R", ]
+rightVSohbWinner = tennisMatches[tennisMatches$winner_ohb == "TRUE" & tennisMatches$winner_hand == "R" & tennisMatches$loser_hand == "R", ]
 
-leftVSohbWinner = tennisMatchesOHB[tennisMatchesOHB$winner_ohb == "TRUE" & tennisMatchesOHB$winner_hand == "R" & tennisMatchesOHB$loser_hand == "L", ]
+leftVSohbWinner = tennisMatches[tennisMatches$winner_ohb == "TRUE" & tennisMatches$winner_hand == "R" & tennisMatches$loser_hand == "L", ]
 
-rightVSohbLoser = tennisMatchesOHB[tennisMatchesOHB$loser_ohb == "TRUE" & tennisMatchesOHB$loser_hand == "R" & tennisMatchesOHB$winner_hand == "R", ]
+rightVSohbLoser = tennisMatches[tennisMatches$loser_ohb == "TRUE" & tennisMatches$loser_hand == "R" & tennisMatches$winner_hand == "R", ]
 
-leftVSohbLoser = tennisMatchesOHB[tennisMatchesOHB$loser_ohb == "TRUE" & tennisMatchesOHB$loser_hand == "R" & tennisMatchesOHB$winner_hand == "L", ]
+leftVSohbLoser = tennisMatches[tennisMatches$loser_ohb == "TRUE" & tennisMatches$loser_hand == "R" & tennisMatches$winner_hand == "L", ]
+
+data <- matrix(c(nrow(rightVSohbWinner), nrow(rightVSohbLoser), nrow(leftVSohbWinner), nrow(leftVSohbLoser)), nrow = 2, byrow = FALSE)
+colnames(data) <- c("protiv dešnjaka", "protiv ljevaka")
+rownames(data) <- c("broj pobjeda", "broj gubitaka")
+
+barplot(data, col = colors()[c(10, 60)], beside = T, legend=rownames(data), main = "Broj pobjeda i gubitaka dešnjaka koji igra jednoručni backhand", ylab = "Broj mečeva")
 
 print(paste0('Broj pobjeda protiv dešnjaka: ', nrow(rightVSohbWinner)))
 print(paste0('Broj gubitaka protiv dešnjaka: ', nrow(rightVSohbLoser)))
@@ -444,18 +452,17 @@ Iz prikaza podataka možemo naslutiti da postoji razlika u vjerojatnosti pobjede
 
 
 ### Testiranje hipoteze
-
 Provodimo Hi-kvadrat test jednakosti proporcija.
 
 Hipoteze:
 
-$H_0: \mu_r = \mu_l$
-$H_1: \mu_r > \mu_l$
+$H_0: p_r = p_l$ 
+$H_1: p_r < p_l$
 
 
 ```{r}
-prop.test(x=c(4839, 790), n=c(4839 + 4364, 790 + 662), alternative = "less")
+prop.test(x=c(17225, 2925), n=c(17225 + 13935, 2925 + 2228), alternative = "less")
 ```
 
 Zaključak:
-Na razini signifikantnosti od 5% ne možemo odbaciti nultu hipotezu o jednakosti proporcija. To znači da ne možemo tvrditi da su dešnjaci ili ljevaci nezgodniji protivnici dešnjacima koji igraju jednoručni backhand.
+Na razini signifikantnosti od 5% odbacujemo nultu hipotezu o jednakosti proporcija u korist alternativne hipoteze koja tvrdi da je udio pobjeda protiv dešnjaka manji od udjela pobjeda protiv ljevaka. To znači da ne možemo tvrditi da su ljevaci nezgodniji protivnici dešnjacima koji igraju jednoručni backhand.
