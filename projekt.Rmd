@@ -305,64 +305,71 @@ stoga zaključujem da broj ostvarenih aseva utječe na pobjedu u meču.
 
 
 ## Problem 5
-### Utječe li količina dobivenog prvog servisa na ishod pobjednika?
+7) pretpostavke i test istih - qq plot i ks i lillieforsov test za provjeru normalnosti
 
-Potrebno je izdvojiti broj dobivenog prvog servisa igrača koji su pobijedili meč i broj dobivenog prvog servisa igrača koji su izgubili meč te ispitati zavisnost broja dogivenog prvog servisa o ishodu pobjednika.
+8) provedba testa - dobro opisat nultu i alternativnu hipotezu
+9) zakljucak - dobro ga opisat na temelju hipoteza
 
-### Izdvajanje podataka i prikaz
+### Utječe li postotak osvojenosti poena prvim servisom na ishod pobjednika?
+
+
+### Opis i postupak
+Mnogi tenisači stavljaju veliki fokus na povećanje osvajanja poena prvim servisom pa se postavlja pitanje utječe i postotak osvojenosti poena prvim servisom na ishod pobjenika. 
+
+Potrebno je izdvojiti postotak osvojenosti poena prvim servisom pobjenika mečeva i postotak osvojenosti poena prvim servisom gubitnika mečeva te ispitati zavisnost postotka dobivenog poena prvim servisom o ishodu pobjebika.
+
+Postotak osvojenosti poena prvim servisom računamo kao p1 * q1, gdje p1 predstavlja vjerojatnost uspješnosti prvog servisa, a q1 predstavlja vjerojatnost osvajanja poena uz uvjet da je prvi servis uspješan.
+
+
+### Korišten test
+Ovu ćemo hipotezu testirati uparenim z-testom.
+
+$$Z = \frac{ \hat{p_{1}} - \hat{p_{2}} } {\sqrt{ \frac{\hat{p_{1}} \hat{q_{1}}}{n_{1}}\frac{\hat{p_{2}} \hat{q_{2}}}{n_{2}}}}$$
+
+
+### Dohvat podataka
 ```{r}
-brojDobivenogPrvogServisaPobjednik <- tennisMatches$w_1stWon
-brojDobivenogPrvogServisaGubitnik <- tennisMatches$l_1stWon
+#vjerojatnost uspješnog prvog servisa
+p1InW = tennisMatches$w_1stIn / tennisMatches$w_svpt
+p1InL = tennisMatches$l_1stIn / tennisMatches$l_svpt
 
-# uklanjanje nedostajećih vrijednosti
-brojDobivenogPrvogServisaPobjednik <- na.omit(brojDobivenogPrvogServisaPobjednik)
-brojDobivenogPrvogServisaGubitnik <- na.omit(brojDobivenogPrvogServisaGubitnik)
+#vjerojatnost osvajanja poena prvim servisom
+p1WonW = ( tennisMatches$w_1stWon / tennisMatches$w_svpt ) 
+p1WonL = ( tennisMatches$l_1stWon / tennisMatches$l_svpt ) 
 
-cat("Pregled podataka o broju dobivenog prvog servisa pobjednika\n")
-summary(brojDobivenogPrvogServisaPobjednik)
+#punjenje nedostajećih vrijednosti očekivanjem
+meanW = mean(p1WonW, na.rm=TRUE)
+meanL = mean(p1WonL, na.rm=TRUE)
 
-cat("\nPregled podataka o broju dobivenog prvog servisa gubitnika\n")
-summary(brojDobivenogPrvogServisaGubitnik)
-```
-Iz prikaza medijana, srednje vrijednosti te maximuma i minimuma podataka odlučit ćemo se za uklanjanje stršećih vrijednosti kako one nebi utjecale na ishod zaključka.
+p1WonW[is.na(p1WonW)] = meanW
+p1WonL[is.na(p1WonL)] = meanL
 
-### Uklanjanje stršećih vrijednosti
-```{r}
+cat("Postotak osvojenosti poena prvim servisom pobjednika:\n")
+summary(p1WonW)
 
-
-Q_w <- quantile(brojDobivenogPrvogServisaPobjednik, probs = c(.1, .9))
-iqr_w <- IQR(brojDobivenogPrvogServisaPobjednik) / 1.349
-
-Q_l <- quantile(brojDobivenogPrvogServisaGubitnik, probs = c(.1, .9))
-iqr_l <- IQR(brojDobivenogPrvogServisaGubitnik) / 1.349
-
-tennisMatchesPrviServis <- subset(
-  tennisMatches,
-  tennisMatches$w_1stWon > (Q_w[1] - 1.5 * iqr_w) &
-    tennisMatches$w_1stWon < (Q_w[2] + 1.5 * iqr_w) &
-    tennisMatches$l_1stWon > (Q_l[1] - 1.5 * iqr_l) &
-    tennisMatches$l_1stWon < (Q_l[2] + 1.5 * iqr_l)
-)
-
-
-# brojDobivenogPrvogServisaPobjednik = subset(brojDobivenogPrvogServisaPobjednik,                     brojDobivenogPrvogServisaPobjednik > (Q[1] - 1.5*iqr) &
-#        brojDobivenogPrvogServisaPobjednik < (Q[2] + 1.5*iqr))
-
-
-
-# brojDobivenogPrvogServisaGubitnik = subset(brojDobivenogPrvogServisaGubitnik,                       brojDobivenogPrvogServisaGubitnik > (Q[1] - 1.5*iqr) &
-#        brojDobivenogPrvogServisaGubitnik < (Q[2] + 1.5*iqr))
-
-# brojDobivenogPrvogServisaGubitnik = head(brojDobivenogPrvogServisaGubitnik, length(brojDobivenogPrvogServisaPobjednik) - length(brojDobivenogPrvogServisaGubitnik))
+cat("Postotak osvojenosti poena prvim servisom gubitnika:\n")
+summary(p1WonL)
 ```
 
+### Vizualizacija
 ```{r}
-cat("Pregled podataka o broju dobivenog prvog servisa pobjednika\n")
-summary(tennisMatchesPrviServis$w_1stWon)
+hist(p1WonW,
+     xlab="Postotak",
+     ylab="Broj ishoda",
+     main="Postotak osvojenosti poena prvim servisom pobjednika",
+     xlim=c(0,1))
 
-cat("\nPregled podataka o broju dobivenog prvog servisa gubitnika\n")
-summary(tennisMatchesPrviServis$l_1stWon)
+hist(p1WonL,
+     xlab="Postotak",
+     ylab="Broj ishoda",
+     main="Postotak osvojenosti poena prvim servisom gubitnika",
+     xlim=c(0,1))
+
+p1Won.frame = data.frame(w = p1WonW,l = p1WonL)
+boxplot(p1Won.frame, col =c("green", "red"))
 ```
+
+Iz prikazanih dijagrama se može naslutiti da je postotak osvojenosti poena prvim servisom veći kod pobjednika u odnosu na gubitnike. Obje populacije imaju zvonolik oblik te možemo koristiti pretpostavku o normalnosti podataka.
 
 
 ### Pregled distribucija uparenih podataka broja dobivenog prvog servisa pobjednika i gubitnika meča
