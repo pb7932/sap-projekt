@@ -295,135 +295,124 @@ stoga zaključujem da broj ostvarenih aseva utječe na pobjedu u meču.
 
 
 ## Problem 5
-### Utječe li količina dobivenog prvog servisa na ishod pobjednika?
+### Utječe li postotak osvojenosti poena prvim servisom na ishod pobjednika?
 
-Potrebno je izdvojiti broj dobivenog prvog servisa igrača koji su pobijedili meč i broj dobivenog prvog servisa igrača koji su izgubili meč te ispitati zavisnost broja dogivenog prvog servisa o ishodu pobjednika.
 
-### Izdvajanje podataka i prikaz
+### Opis i postupak
+Mnogi tenisači stavljaju veliki fokus na povećanje osvajanja poena prvim servisom pa se postavlja pitanje utječe i postotak osvojenosti poena prvim servisom na ishod pobjenika. 
+
+Potrebno je izdvojiti postotak osvojenosti poena prvim servisom pobjenika mečeva i postotak osvojenosti poena prvim servisom gubitnika mečeva te ispitati njihov odnos.
+
+
+### Korišten test
+Ovu ćemo hipotezu testirati t-testom.
+
+$$T = \frac{ \overline{x_{1}} - \overline{x_{2}} } {\sqrt{\frac {s2} {n_{1}} + \frac{s^2} {n_{2}} }}$$
+
+
+### Dohvat podataka
 ```{r}
-brojDobivenogPrvogServisaPobjednik <- tennisMatches$w_1stWon
-brojDobivenogPrvogServisaGubitnik <- tennisMatches$l_1stWon
-# uklanjanje nedostajećih vrijednosti
-brojDobivenogPrvogServisaPobjednik <- na.omit(brojDobivenogPrvogServisaPobjednik)
-brojDobivenogPrvogServisaGubitnik <- na.omit(brojDobivenogPrvogServisaGubitnik)
-cat("Pregled podataka o broju dobivenog prvog servisa pobjednika\n")
-summary(brojDobivenogPrvogServisaPobjednik)
-cat("\nPregled podataka o broju dobivenog prvog servisa gubitnika\n")
-summary(brojDobivenogPrvogServisaGubitnik)
-```
-Iz prikaza medijana, srednje vrijednosti te maximuma i minimuma podataka odlučit ćemo se za uklanjanje stršećih vrijednosti kako one nebi utjecale na ishod zaključka.
+#postotak osvajanja poena prvim servisom
+p1WonW = ( tennisMatches$w_1stWon / tennisMatches$w_svpt ) 
+p1WonL = ( tennisMatches$l_1stWon / tennisMatches$l_svpt ) 
 
-### Uklanjanje stršećih vrijednosti
-```{r}
-Q_w <- quantile(brojDobivenogPrvogServisaPobjednik, probs = c(.1, .9))
-iqr_w <- IQR(brojDobivenogPrvogServisaPobjednik) / 1.349
-Q_l <- quantile(brojDobivenogPrvogServisaGubitnik, probs = c(.1, .9))
-iqr_l <- IQR(brojDobivenogPrvogServisaGubitnik) / 1.349
-tennisMatchesPrviServis <- subset(
-  tennisMatches,
-  tennisMatches$w_1stWon > (Q_w[1] - 1.5 * iqr_w) &
-    tennisMatches$w_1stWon < (Q_w[2] + 1.5 * iqr_w) &
-    tennisMatches$l_1stWon > (Q_l[1] - 1.5 * iqr_l) &
-    tennisMatches$l_1stWon < (Q_l[2] + 1.5 * iqr_l)
-)
-# brojDobivenogPrvogServisaPobjednik = subset(brojDobivenogPrvogServisaPobjednik,                     brojDobivenogPrvogServisaPobjednik > (Q[1] - 1.5*iqr) &
-#        brojDobivenogPrvogServisaPobjednik < (Q[2] + 1.5*iqr))
-# brojDobivenogPrvogServisaGubitnik = subset(brojDobivenogPrvogServisaGubitnik,                       brojDobivenogPrvogServisaGubitnik > (Q[1] - 1.5*iqr) &
-#        brojDobivenogPrvogServisaGubitnik < (Q[2] + 1.5*iqr))
-# brojDobivenogPrvogServisaGubitnik = head(brojDobivenogPrvogServisaGubitnik, length(brojDobivenogPrvogServisaPobjednik) - length(brojDobivenogPrvogServisaGubitnik))
+#punjenje nedostajećih vrijednosti očekivanjem
+meanW = mean(p1WonW, na.rm=TRUE)
+meanL = mean(p1WonL, na.rm=TRUE)
+
+p1WonW[is.na(p1WonW)] = meanW
+p1WonL[is.na(p1WonL)] = meanL
+
+cat("Postotak osvojenosti poena prvim servisom pobjednika:\n")
+summary(p1WonW)
+
+cat("Postotak osvojenosti poena prvim servisom gubitnika:\n")
+summary(p1WonL)
 ```
 
+### Vizualizacija
 ```{r}
-cat("Pregled podataka o broju dobivenog prvog servisa pobjednika\n")
-summary(tennisMatchesPrviServis$w_1stWon)
-cat("\nPregled podataka o broju dobivenog prvog servisa gubitnika\n")
-summary(tennisMatchesPrviServis$l_1stWon)
+hist(p1WonW,
+     xlab="Postotak",
+     ylab="Broj ishoda",
+     main="Postotak osvojenosti poena prvim servisom pobjednika",
+     xlim=c(0,1))
+
+hist(p1WonL,
+     xlab="Postotak",
+     ylab="Broj ishoda",
+     main="Postotak osvojenosti poena prvim servisom gubitnika",
+     xlim=c(0,1))
+
+p1Won.frame = data.frame(w = p1WonW,l = p1WonL)
+boxplot(p1Won.frame, col =c("green", "red"))
 ```
 
+Iz prikazanih dijagrama se može naslutiti da je postotak osvojenosti poena prvim servisom veći kod pobjednika u odnosu na gubitnike. Obje populacije imaju zvonolik oblik, no testirajmo normalnost i qq-plotom. 
 
-### Pregled distribucija uparenih podataka broja dobivenog prvog servisa pobjednika i gubitnika meča
+
+
+### Provjera normalnosti
 ```{r}
-upareniBrojDobivenogPrvogServisa <- c(brojDobivenogPrvogServisaPobjednik - brojDobivenogPrvogServisaGubitnik)
-hist(upareniBrojDobivenogPrvogServisa,
-  breaks = 40,
-  xlab = "Upareni broj dobivenog prvog servisa",
-  ylab = "Broj ishoda",
-  main = "Distribucija uparenih podataka broja dobivenog prvog servisa"
-)
-hist(brojDobivenogPrvogServisaPobjednik,
-  xlim = c(0, 50),
-  breaks = 80,
-  xlab = "Broj dobivenog prvog servisa",
-  ylab = "Broj pobjednika",
-  main = "Distribucija broja dobivenog prvog servisa pobjednika"
-)
-hist(brojDobivenogPrvogServisaGubitnik,
-  xlim = c(0, 50),
-  breaks = 80,
-  xlab = "Broj dobivenog prvog servisa",
-  ylab = "Broj gubitnika",
-  main = "Distribucija broja dobivenog prvog servisa gubitnika"
-)
-```
-
-Iz histograma, srednjih vrijednosti te medijana danih podataka, može se naslutiti da broj dobivenog prvog servisa utječe na ishod pobjednika.
-
-Histogram uparenih podataka ima znovolik oblik. Provjerimo normalnost i qq dijagramom.
-
-
-### QQ-dijagram
-```{r}
-qqnorm(upareniBrojDobivenogPrvogServisa,
+qqnorm(p1WonW,
   pch = 1,
   frame = FALSE,
-  main = "Upareni podaci broja dobivenog prvog servisa pobjednika i gubitnika"
+  main = "Postotak osvojenosti poena prvim servisom pobjednika"
 )
-qqline(upareniBrojDobivenogPrvogServisa, col = "steelblue", lwd = 2)
+qqline(p1WonW, col = "steelblue", lwd = 2)
+
+qqnorm(p1WonL,
+  pch = 1,
+  frame = FALSE,
+  main = "Postotak osvojenosti poena prvim servisom gubitnika"
+)
+qqline(p1WonL, col = "steelblue", lwd = 2)
 ```
 
-Pregledom dijagrama možemo koristiti pretpostavku o normalnosti uparenih podataka.
+Pregledom dijagrama vidimo da podaci imaju odstupanja od normalne distribucije, ali je t-test robustan na ne-normalnost kada podaci imaju zvonolik oblik.
 
 
 ### Testiranje jednakosti varijanci
 
-Kako bi se moglo odlučiti koji će se test koristiti potrebno je provesti test o jednakosti varijanci broja dobivenog prvog servisa pobjednika u odnosu na broj dobivenog prvog servisa gubitnika.
+Kako bi se moglo odlučiti koji će se t-test koristiti potrebno je provesti test o jednakosti varijanci.
 
 ```{r}
-varPobjednik <- var(brojDobivenogPrvogServisaPobjednik)
-varGubitnik <- var(brojDobivenogPrvogServisaGubitnik)
-cat("Varijanca broja dobivenog prvog servisa pobjednika: ", varPobjednik, "\n")
-cat("Varijanca broja dobivenog prvog servisa gubitnika: ", varGubitnik, "\n")
+varPobjednik <- var(p1WonW)
+varGubitnik <- var(p1WonL)
+
+cat("Varijanca postotka dobivenosti poena prvim servisom pobjednika: ", varPobjednik, "\n")
+cat("Varijanca postotka dobivenosti poena prvim servisom gubitnika: ", varGubitnik, "\n")
 ```
 
 ```{r}
-var.test(brojDobivenogPrvogServisaPobjednik, brojDobivenogPrvogServisaGubitnik)
+var.test(p1WonW, p1WonL)
 ```
 
 Zaključak:
-Na razini značajnosti od 1% može se zaključiti da varijance broja dobivenog prvog servisa pobjednika i broja dobivenog prvog servisa gubitnika nisu jednake.
+Na razini značajnosti od 1% može se zaključiti da varijance postotka dobivenosti poena prvim servisom pobjednika i gubitnika nisu jednake.
 
 
 ### Testiranje hipoteze
 
-Za testiranje utjecaja broja prvog servisa na ishod pobjednika koristi se t test sa nepoznatim te nejednakim varijancama.
+Za testiranje utjecaja postotka dobivenosti poena prvim servisom na ishod pobjednika koristi se t-test sa nepoznatim te nejednakim varijancama.
 
 Hipoteze:
 
-$H_0: \mu_w - \mu_l = 0$
+$H_0$ : postotci dobivenosti poena prvim servisom pobjednika i gubitnika meča su jednaki
+$H_1$ : postotak dobivenosti poena prvim servisom je veći kod pobjednika u odnosu na gubitnike meča
+
+$H_0: \mu_w - \mu_l = 0$ 
 $H_0: \mu_w - \mu_l > 0$
 ```{r}
-t.test(upareniBrojDobivenogPrvogServisa,
+t.test(p1WonW, p1WonL,
   alternative = "greater",
   var.equal = FALSE
 )
-# t.test(brojDobivenogPrvogServisaPobjednik
-#       , brojDobivenogPrvogServisaGubitnik
-#       , alternative = "greater"
-#       , var.equal = FALSE)
 ```
 
 Zaključak:
-Iz provedenog testa možemo pri razini signifikantnosti od 5% zaključiti da je broj dobivenog prvog servisa pobjednika meča veći od broja dobivenog prvog servisa gubitnika meča premda je dobivena p-vrijednost manja od 2.2e-16.
+Na razini signifikantnosti od 1% odbacujemo nultu hipotezu te zaključujemo da je postotak dobivenosti poena prvim servisom pobjednika meča veći od postotka dobivenosti poena prvim servisom gubitnika meča premda je dobivena p-vrijednost manja od 2.2e-16.
+
 
 
 ## Problem 6
