@@ -300,48 +300,52 @@ Mnogi tenisači stavljaju veliki fokus na povećanje osvajanja poena prvim servi
 
 Potrebno je izdvojiti postotak osvojenosti poena prvim servisom pobjenika mečeva i postotak osvojenosti poena prvim servisom gubitnika mečeva te ispitati njihov odnos.
 
-
-### Korišten test
-Ovu ćemo hipotezu testirati t-testom.
-
-$$T = \frac{ \overline{x_{1}} - \overline{x_{2}} } {\sqrt{\frac {s2} {n_{1}} + \frac{s^2} {n_{2}} }}$$
-
+Postotak osvojenosti poena prvim servisom računamo kao p1 * q1 gdje je p1 vjerojatnost
+uspješnosti prvog servisa, a q1 vjerojatnost osvajanja poena uz uvjet da je prvi servis uspješan.
 
 ### Dohvat podataka
 ```{r}
-#postotak osvajanja poena prvim servisom
-p1WonW = ( tennisMatches$w_1stWon / tennisMatches$w_svpt ) 
-p1WonL = ( tennisMatches$l_1stWon / tennisMatches$l_svpt ) 
+#vjerojatnost uspješnosti prvog servisa
+p1stWon.p1.w = tennisMatches$w_1stIn / tennisMatches$w_svpt
+p1stWon.p1.l = tennisMatches$l_1stIn / tennisMatches$l_svpt
+
+#vjerojatnost osvajanja poena uz uvjet da je prvi servis uspješan
+p1stWon.q1.w  = tennisMatches$w_1stWon / tennisMatches$w_1stIn
+p1stWon.q1.l = tennisMatches$l_1stWon / tennisMatches$l_1stIn
+
+#vjerojatnost osvajanja poena prvim servisom
+p1stWon.w = p1stWon.p1.w * p1stWon.q1.w
+p1stWon.l = p1stWon.p1.l * p1stWon.q1.l
 
 #punjenje nedostajećih vrijednosti očekivanjem
-meanW = mean(p1WonW, na.rm=TRUE)
-meanL = mean(p1WonL, na.rm=TRUE)
+meanW = mean(p1stWon.w, na.rm=TRUE)
+meanL = mean(p1stWon.l, na.rm=TRUE)
 
-p1WonW[is.na(p1WonW)] = meanW
-p1WonL[is.na(p1WonL)] = meanL
+p1stWon.w[is.na(p1stWon.w)] = meanW
+p1stWon.l[is.na(p1stWon.l)] = meanL
 
 cat("Postotak osvojenosti poena prvim servisom pobjednika:\n")
-summary(p1WonW)
+summary(p1stWon.w)
 
 cat("Postotak osvojenosti poena prvim servisom gubitnika:\n")
-summary(p1WonL)
+summary(p1stWon.l)
 ```
 
 ### Vizualizacija
 ```{r}
-hist(p1WonW,
+hist(p1stWon.w,
      xlab="Postotak",
      ylab="Broj ishoda",
      main="Postotak osvojenosti poena prvim servisom pobjednika",
      xlim=c(0,1))
 
-hist(p1WonL,
+hist(p1stWon.l,
      xlab="Postotak",
      ylab="Broj ishoda",
      main="Postotak osvojenosti poena prvim servisom gubitnika",
      xlim=c(0,1))
 
-p1Won.frame = data.frame(w = p1WonW,l = p1WonL)
+p1Won.frame = data.frame(w = p1stWon.w,l = p1stWon.l)
 boxplot(p1Won.frame, col =c("green", "red"))
 ```
 
@@ -351,19 +355,19 @@ Iz prikazanih dijagrama se može naslutiti da je postotak osvojenosti poena prvi
 
 ### Provjera normalnosti
 ```{r}
-qqnorm(p1WonW,
+qqnorm(p1stWon.w,
   pch = 1,
   frame = FALSE,
   main = "Postotak osvojenosti poena prvim servisom pobjednika"
 )
-qqline(p1WonW, col = "steelblue", lwd = 2)
+qqline(p1stWon.w, col = "steelblue", lwd = 2)
 
-qqnorm(p1WonL,
+qqnorm(p1stWon.l,
   pch = 1,
   frame = FALSE,
   main = "Postotak osvojenosti poena prvim servisom gubitnika"
 )
-qqline(p1WonL, col = "steelblue", lwd = 2)
+qqline(p1stWon.l, col = "steelblue", lwd = 2)
 ```
 
 Pregledom dijagrama vidimo da podaci imaju odstupanja od normalne distribucije, ali je t-test robustan na ne-normalnost kada podaci imaju zvonolik oblik.
@@ -374,41 +378,47 @@ Pregledom dijagrama vidimo da podaci imaju odstupanja od normalne distribucije, 
 Kako bi se moglo odlučiti koji će se t-test koristiti potrebno je provesti test o jednakosti varijanci.
 
 ```{r}
-varPobjednik <- var(p1WonW)
-varGubitnik <- var(p1WonL)
+varPobjednik <- var(p1stWon.w)
+varGubitnik <- var(p1stWon.l)
 
 cat("Varijanca postotka dobivenosti poena prvim servisom pobjednika: ", varPobjednik, "\n")
 cat("Varijanca postotka dobivenosti poena prvim servisom gubitnika: ", varGubitnik, "\n")
 ```
 
 ```{r}
-var.test(p1WonW, p1WonL)
+var.test(p1stWon.w, p1stWon.l)
 ```
 
 Zaključak:
 Na razini značajnosti od 1% može se zaključiti da varijance postotka dobivenosti poena prvim servisom pobjednika i gubitnika nisu jednake.
 
+### Odabir testa
+Iz provednih testova odlučujemo se za provjeru hipoteze uporabom t-testa uz pretpostavku nejednakosti varijanci. Taj test ima sljedeću testnu statistiku:
 
+$$T = \frac { \mu_{1} - \mu_{2} } { s_{p}^{2} \sqrt{ (\frac {1} {n_{1}} + \frac{1} {n_{2}}) } }$$
+gdje je 
+
+$$s_{p}^{2} = \frac { (n_{1} - 1)s_{1}^2 + (n_{2} - 1)s_{2}^{2} } { n_{1} + n_{2} - 2 }$$
 ### Testiranje hipoteze
-
-Za testiranje utjecaja postotka dobivenosti poena prvim servisom na ishod pobjednika koristi se t-test sa nepoznatim te nejednakim varijancama.
 
 Hipoteze:
 
 $H_0$ : postotci dobivenosti poena prvim servisom pobjednika i gubitnika meča su jednaki
 $H_1$ : postotak dobivenosti poena prvim servisom je veći kod pobjednika u odnosu na gubitnike meča
 
+odnosno
+
 $H_0: \mu_w - \mu_l = 0$ 
 $H_1: \mu_w - \mu_l > 0$
 ```{r}
-t.test(p1WonW, p1WonL,
+t.test(p1stWon.w, p1stWon.l,
   alternative = "greater",
   var.equal = FALSE
 )
 ```
 
 Zaključak:
-Na razini signifikantnosti od 1% odbacujemo nultu hipotezu te zaključujemo da je postotak dobivenosti poena prvim servisom pobjednika meča veći od postotka dobivenosti poena prvim servisom gubitnika meča premda je dobivena p-vrijednost manja od 2.2e-16.
+Na razini signifikantnosti od 1% odbacujemo hipotezu $H_0$ u koristi hipoteze $H_1$ koja tvrdi  da je postotak dobivenosti poena prvim servisom pobjednika meča veći od postotka dobivenosti poena prvim servisom gubitnika meča, premda je dobivena p-vrijednost manja od 2.2e-16.
 
 
 
