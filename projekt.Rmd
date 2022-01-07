@@ -79,29 +79,73 @@ dim(tennisMatches)
 ## Problem 1
 ###Možemo li nešto zaključiti iz distribucije visine najboljih deset igrača u posljednjih 30 godina u odnosu na distribuciju visine igrača koji nisu bili tako uspješni?
 
-Potrebno je izdvojiti visine tenisača u dva različita skupa podataka. Prvi skup podataka sadrži sve visine igrača koji su u trenutku odigravanje meča bili u top deset najboljih tenisača. Drugi skup podataka sadrži sve visine igrača koji u trenutku odigravanje meča nisu bili u top deset najboljih tenisača.
+Potrebno je izdvojiti visine tenisača u dva različita skupa podataka. Prvi skup podataka sadrži jedistven skup igrača koji su u posljednih 30 godina bili u top deset najboljih u trenutku igranja meča, a drugi sadrži jedinstven skup igrača koji u posljednjih trideset godina u trenutku igranja meča nisu bili u top deset najboljih.
+
 
 ```{r}
-# Spremanje visina igrača koji su u trenutku igranja meča u top deset najboljih
-topTenWinnerHeight <- tennisMatches[tennisMatches$winner_rank <= 10, ]$winner_ht
-topTenLosserHeight <- tennisMatches[tennisMatches$loser_rank <= 10, ]$loser_ht
-topTenHeight <- append(topTenWinnerHeight, topTenLosserHeight)
-# Odbacivanje nedostajećih vrijednosti
-topTenHeight <- topTenHeight[complete.cases(topTenHeight)]
-summary(topTenHeight)
-hist(topTenHeight, xlab = "Visina igrača", ylab = "Frekvencija", main = "Visina igrača koji su u top deset najboljih")
+topTenW = tennisMatches[tennisMatches$winner_rank <= 10, c("winner_name", "winner_ht")]
+topTenL = tennisMatches[tennisMatches$loser_rank <= 10, c("loser_name", "loser_ht")]
+
+colnames(topTenW) = c("name", "ht")
+colnames(topTenL) = c("name", "ht")
+
+topTen = rbind(topTenW, topTenL)
+topTen = topTen[!duplicated(topTen[, c("name")]), ]
+
+cat("Pregled podataka o visini igrača u top deset najboljih\n")
+summary(topTen$ht)
+
+
+notTopTenW = tennisMatches[tennisMatches$winner_rank > 10, c("winner_name", "winner_ht")]
+notTopTenL = tennisMatches[tennisMatches$loser_rank > 10, c("loser_name", "loser_ht")]
+
+colnames(notTopTenW) = c("name", "ht")
+colnames(notTopTenL) = c("name", "ht")
+
+notTopTen = rbind(notTopTenW, notTopTenL)
+notTopTen = notTopTen[!duplicated(notTopTen[, c("name")]), ]
+
+cat("\nPregled podataka o visini igrača koji nisu u top deset najboljih\n")
+summary(notTopTen$ht)
+
 ```
 
+Premda se u podatcima nalaze nedostajeće vrijednosti, zamijenit ćemo ih prosječnim vrijednostima podataka.
 
 ```{r}
-# Spremanje visina igrača koji u trenutku igranja meča nisu u top deset najboljih
-notTopTenWinnerHeight <- tennisMatches[tennisMatches$winner_rank > 10, ]$winner_ht
-noTopTenLosserHeight <- tennisMatches[tennisMatches$loser_rank > 10, ]$loser_ht
-notTopTenHeight <- append(notTopTenWinnerHeight, noTopTenLosserHeight)
-# Odbacivanje nedostajećih vrijednosti
-notTopTenHeight <- notTopTenHeight[complete.cases(notTopTenHeight)]
-summary(notTopTenHeight)
-hist(notTopTenHeight, xlab = "Visina igrača", ylab = "Frekvencija", main = "Visina igrača koji nisu u top deset najboljih")
+meanTopTenHt = mean(topTen$ht, na.rm = TRUE)
+meanNotTopTenHt = mean(notTopTen$ht, na.rm = TRUE)
+
+topTen$ht[is.na(topTen$ht)] = meanTopTenHt
+notTopTen$ht[is.na(notTopTen$ht)] = meanNotTopTenHt
+
+cat("Pregled podataka o visini igrača u top deset najboljih\n")
+summary(topTen$ht)
+
+cat("\nPregled podataka o visini igrača koji nisu u top deset najboljih\n")
+summary(notTopTen$ht)
+```
+
+###Vizualizacija podataka
+
+```{r}
+
+hist(topTen$ht,
+     xlab="Visina igrača",
+     ylab="Frekvencija",
+     main="Visina igrača u top deset najboljih",
+     xlim = c(160, 220)
+   )
+
+hist(notTopTen$ht,
+     xlab="Visina igrača",
+     ylab="Frekvencija",
+     main="Visina igrača koji nisu u top deset najboljih",
+     xlim = c(160, 220)
+   )
+
+boxplot(topTen$ht, main="Visina igrača u top deset najboljih")
+boxplot(notTopTen$ht, main="Visina igrača koji nisu u top deset najboljih")
 ```
 
 Prije određivanja testa potrebno je provjeriti normalnost podataka.
@@ -109,16 +153,16 @@ Prije određivanja testa potrebno je provjeriti normalnost podataka.
 ### Histogram te QQ-dijagram upućuju na normalnost podataka visine top deset najboljih igrača.
 ```{r}
 # QQ-dijagram
-qqnorm(topTenHeight, pch = 1, frame = FALSE, main = "Visina top deset najboljih igrača")
-qqline(topTenHeight, col = "steelblue", lwd = 2)
+qqnorm(topTen$ht, pch = 1, frame = FALSE, main = "Visina top deset najboljih igrača")
+qqline(topTen$ht, col = "steelblue", lwd = 2)
+
+qqnorm(notTopTen$ht, pch = 1, frame = FALSE, 
+       main = "Visina igrača koji nisu u top deset najboljih ")
+qqline(notTopTen$ht, col = "steelblue", lwd = 2)
 ```
 
-Histogram te QQ-dijagram upućuju na normalnost podataka visine igrača koji nisu u top deset najboljih.
-```{r}
-# QQ-dijagram
-qqnorm(notTopTenHeight, pch = 1, frame = FALSE, main = "Visina igrača koji nisu u top deset najboljih")
-qqline(notTopTenHeight, col = "steelblue", lwd = 2)
-```
+Histogram te QQ-dijagram upućuju na ne normalnost podataka visina igrača.
+
 
 Pod pretpostavkom da visine igrača prate normalnu distribuciju nastavlja testiranje povezanosti visine i uspješnosti igrača, koristi se t-test.
 
@@ -494,10 +538,10 @@ Potrebno je upariti broj dvostrukih pogrešaka pobjednika i gubitnika meča te v
 dfW = tennisMatches$w_df
 dfL = tennisMatches$l_df
 
-cat("Podaci o broju dvostrukig pogrešaka pobjenika meča\n")
+cat("Podaci o broju dvostrukih pogrešaka pobjenika meča\n")
 summary(dfW)
 
-cat("Podaci o broju dvostrukig pogrešaka gubitnika meča\n")
+cat("\nPodaci o broju dvostrukih pogrešaka gubitnika meča\n")
 summary(dfL)
 ```
 
