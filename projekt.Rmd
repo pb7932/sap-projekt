@@ -476,3 +476,111 @@ prop.test(x=c(17225, 2925), n=c(17225 + 13935, 2925 + 2228), alternative = "less
 
 Zaključak:
 Na razini signifikantnosti od 5% odbacujemo nultu hipotezu o jednakosti proporcija u korist alternativne hipoteze koja tvrdi da je udio pobjeda protiv dešnjaka manji od udjela pobjeda protiv ljevaka. To znači da ne možemo tvrditi da su ljevaci nezgodniji protivnici dešnjacima koji igraju jednoručni backhand.
+
+
+
+##Problem 7
+
+###Utječe li broj dvostrukih pogrešaka na ishod pobjednika?
+
+Velik broj dvostrukih pogrešaka u teniskom meču može utjecati na nepotreban gubitak poena.
+Postavlja se pitanje utječe li broj dvostrukih pogrešaka na ishod pobjednika.
+
+Potrebno je upariti broj dvostrukih pogrešaka pobjednika i gubitnika meča te vidjeti postoji li značajna razlika u broju dvostrukih pogrešaka pobjednika i gubitnika meča.
+
+
+###Dohvat podataka
+```{r}
+dfW = tennisMatches$w_df
+dfL = tennisMatches$l_df
+
+cat("Podaci o broju dvostrukig pogrešaka pobjenika meča\n")
+summary(dfW)
+
+cat("Podaci o broju dvostrukig pogrešaka gubitnika meča\n")
+summary(dfL)
+```
+
+
+
+###Uklanjanje nedostajećih vrijednosti
+
+Iz podataka uklanjamo one mečeve za koje ne postoje podatci o broju dvostrukih pogrešaka
+pobjenika ili gubitnika meča.
+```{r}
+dfMatches = tennisMatches[names(tennisMatches) %in% c("w_df", "l_df")]
+
+dfMatches = na.omit(dfMatches)
+
+dim(dfMatches)
+
+summary(dfMatches$w_df)
+summary(dfMatches$l_df)
+```
+
+```{r}
+dfMatches.upareni = dfMatches$w_df - dfMatches$l_df
+```
+
+###Vizualizacija podataka
+```{r}
+hist(dfMatches$w_df,
+     xlab="Broj pogrešaka",
+     ylab="Frekvencija",
+     main="Broj dvostrukih pogrešaka pobjednika",
+    ylim = c(0, 50000))
+
+hist(dfMatches$l_df,
+     xlab="Broj pogrešaka",
+     ylab="Frekvencija",
+     main="Broj dvostrukih pogrešaka gubitnika",
+    ylim = c(0, 50000))
+
+dfMatches.frame = data.frame(w = dfMatches$w_df,l = dfMatches$l_df)
+boxplot(dfMatches.frame, col =c("green", "red"))
+
+hist(dfMatches.upareni,
+     xlab="Razlika broja pogrešaka",
+     ylab="Frekvencija",
+     main="Upareni broj dvostrukih pogrešaka",
+    )
+
+boxplot(dfMatches.upareni)
+```
+
+Iz prikazanih dijagrama se može naslutiti kako gubitnici imaju veći broj dvostrukih pogrešaka u usporedbi sa pobjednicima meča. Upareni broj dvostrukih pogrešaka ima zvonolik oblik te njegov histogram nalikuje na normalnu distribuciju, no provjerimo to i qq-plotom.
+
+
+```{r}
+qqnorm(dfMatches.upareni,
+  pch = 1,
+  frame = FALSE,
+  main = "Upareni broj dvostrukih pogrešaka"
+)
+qqline(dfMatches.upareni, col = "steelblue", lwd = 2)
+```
+
+###Odabir testa
+QQ-plot daje uvid u manja odstupanja uparenog broja dvostrukih pogrešaka od normalne distribucije, no premda distribucija ima zvonolik oblik možemo koristiti t-test premda je on robustan na nenormalnost.
+
+Koristit ćemo t-test čija je testna statistika:
+
+$$t = \frac {\mu - \mu_{0}} {s/\sqrt{n}}$$
+
+###Hipoteze
+
+$$H_0$$ : broj dvostrukih pogrešaka pobjednika je jednak broju dvostrukih pogrešaka gubitnika
+$$H_1$$ : broj dvostrukih pogrešaka pobjednika je manji od broja dvostrukih pogrešaka gubitnika
+
+odnosno
+
+$$H_0 : \mu_{w} - \mu_{l} = 0$$
+$$H_1 : \mu_{w} - \mu_{l} < 0$$
+premda provodimo test nad uparenim podacima.
+
+###Provedba testa
+```{r}
+t.test(dfMatches.upareni, alt = "less")
+```
+###Zaključak
+Na razini značajnosti od 1% odbacujemo nultu hipotezu u korist alternativne hipoteze koja govori da je broj dvostrukih pogrešaka gubitnika manji od broja dvostukih pogrešaka pobjednika meča. Ne možemo tvrditi da je broj dvostrukih pogrešaka pobjednika i gubitnika meča jednak.
