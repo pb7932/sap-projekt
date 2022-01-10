@@ -176,6 +176,8 @@ $H_1$: očekivanje visine igrača koji su u top deset najboljih je veće od oče
 ### Provjera jednakosti varijanci
 
 ```{r}
+topTenHeight <- topTen$ht
+notTopTenHeight <- notTopTen$ht
 varTopTen <- var(topTenHeight)
 varNotTopTen <- var(notTopTenHeight)
 cat("Varijanca top deset najboljih igrača: ", varTopTen, "\n")
@@ -284,6 +286,15 @@ Zato što u jednom meču podatci broja aseva pobjednika i asevi broja gubitnika 
 ne mogu promatrati distribucije odvojeno, stoga zaključujem da trebam provjeriti je li broj aseva koji je ostvario
 pobjednik statistički značajno veći da bi se zaključila povezanost broja aseva i ishoda meča.
 
+#### Korišteni test
+Za ovaj problem ću koristiti t test s uparenim vrijednostima.
+Neka je $w_i$ reaizacija broja aseva pobjednika i $l_i$ realizaija broja aseva gubitnika,
+tada definiram realizaciju razlike: $d_i = w_i - l_i$ za svaki meč u skupu podataka. Ovime
+dobivam populaciju razlika $D$ nad kojim ću provesti test.
+
+##### Pretpostavke testa
+1. Ako znamo da uzorak dolazi iz normalne distribucije t-test je egzaktan
+2. T-test pretpostavlja da su varijance jednake
 
 #### Provjera normalnosti podataka
 Provjeravam jesu li ispunjeni uvjeti za provedbu t testa
@@ -307,13 +318,26 @@ hist(aseviUpareni, main = "Broj aseva W - L", xlab = "Razlika aseva", ylab = "Fr
 ```
 
 Podatci prate zvonoliku krivulju, a t-test je robustan na ne normalnost, 
-tj. distribucija uzorka ne mora biti normalna da bi t test dao ispravne rezultate,
+tj. distribucija uzorka ne mora biti normalna da bi t test dao ispravne rezultate (test je aproksimativan),
  ali po obliku mora pratiti normalnu krivulju.
+
+Provodim Lilliefors test nad podatcima
+```{r}
+lillie.test(aseviUpareni)
+```
 ```{r}
 summary(aseviUpareni)
 boxplot(aseviUpareni)
 ```
 
+#### Provjera jednakosti varijanci
+
+```{r}
+var.test(tennisMatches$w_ace, tennisMatches$l_ace)
+```
+
+# TODO
+Zato što su sve pretopstavke t-testa zadovoljene zaključujem da mogu provesti upareni t-test.
 
 #### Provodim jednostrani T test
 
