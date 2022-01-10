@@ -18,6 +18,8 @@ Statistika i predviđanje sportskih rezultata mogu pomoći menadžerima, treneri
 ```{r echo=T, error=FALSE, warning=FALSE, message=FALSE}
 library(dplyr)
 library(tidyverse)
+library(nortest)
+library(OpenCL)
 ```
 
 ### Učitavanje podataka
@@ -325,10 +327,6 @@ Provodim Lilliefors test nad podatcima
 ```{r}
 lillie.test(aseviUpareni)
 ```
-```{r}
-summary(aseviUpareni)
-boxplot(aseviUpareni)
-```
 
 #### Provjera jednakosti varijanci
 
@@ -336,8 +334,10 @@ boxplot(aseviUpareni)
 var.test(tennisMatches$w_ace, tennisMatches$l_ace)
 ```
 
-# TODO
-Zato što su sve pretopstavke t-testa zadovoljene zaključujem da mogu provesti upareni t-test.
+#### Uvjeti testa
+Zato što variance nisu jednake i distribucija $D$ populacije nije normalna, ali je zvonolika, zaključujem da je t-test aproksimativan,
+zbog toga provodim i Jackknife, da utvrdim 99% interval za srednju vrijednost.
+
 
 #### Provodim jednostrani T test
 
@@ -351,13 +351,56 @@ $$H_1: \mu_w - \mu_l > 0$$
 t.test(aseviUpareni, alt = "greater")
 ```
 
-#### Zaključak
+#### Zaključak t-testa
 
 Zbog male p-vrijednosti mogu odbaciti hipotezu $H_0$ i zaključiti da broj ostvarenih aseva igrača koji je pobijedio je statistički značajno veće
-na dostupnom uzorku nego od broja aseva koje je ostvario igrač koji je izgubio,
-stoga zaključujem da broj ostvarenih aseva utječe na pobjedu u meču.
+na dostupnom uzorku nego od broja aseva koje je ostvario igrač koji je izgubio.
 
+#### Jackknife
 
+```{r jackknife}
+aseviUpareni <- na.omit(aseviUpareni)
+context <- oclContext(device = "gpu")
+buffer <- clBuffer(context, length(aseviUpareni), "numeric")
+buffer[] <- as.numeric(aseviUpareni)
+
+code = c("
+__kernel void mJackknife(__global float *output, const unsigned int count, __global float *input, __global int *len, __global float *mean)
+{
+  size_t i = get_global_id(0);
+  if(i >= count) return;
+  float s = 0.0f;
+  for(size_t j = 0; j < *len; j++){
+    if(i != j){
+      s+= input[j];
+    }
+  }
+  output[i] = (*len) * (*mean) -  s;
+}
+")
+
+k.mJackknife <- oclSimpleKernel(context, "mJackknife", code)
+
+n <- length(aseviUpareni)
+
+ps <- as.numeric(oclRun(k.mJackknife,
+      n,
+      buffer,
+      as.clBuffer(n, context),
+      as.clBuffer(mean(aseviUpareni), context),
+      dim = c(n)))
+
+se <- sd(ps)/sqrt(n)
+j <- mean(ps)
+cat("Interval povjerenja od 99% za aritmetičku sredinu je [", (j - qt(0.995, n-1)*se), " ,", (j + qt(0.995, n-1)*se), "]")
+```
+
+#### Zaključak Jackknifea
+Zato što srednja vrijednost $\mu = 0$ nije unutar 99% intervala procjene uzorka, 
+zaključujem da mogu odbaciti hipotezu $H_0$.
+
+### Zaključak
+Iz provedenih testova zaključujem da broj ostvarenih aseva utječe na pobjedu u meču.
 
 ## Problem 5
 ### Utječe li postotak osvojenosti poena prvim servisom na ishod pobjednika?
