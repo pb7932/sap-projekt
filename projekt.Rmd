@@ -11,8 +11,11 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
 ## Motivacija i opis problema
+
 Statistika i predviđanje sportskih rezultata mogu pomoći menadžerima, trenerima, procjeniteljima kvota i drugima u donošenju odluka. U tenisu je statistika kao alat dobila dodatnu popularnost zahvaljujući bivšem treneru Craigu O’Shaughnessyu, strategu s uporištem u statistici čija je analiza bila ključna u rezultatima Novaka Đokovića protiv njegovih najvećih rivala. Svojim zaključcima izvedenim iz povijesnih podataka mečeva tenisačima je moguće prilagoditi kondicijske pripreme, teniske treninge i strategiju protiv pojedinih protivnika, što rezultira boljom i konzistentnijom igrom.
+
 
 ### Učitavanje potrebnih paketa
 ```{r echo=T, error=FALSE, warning=FALSE, message=FALSE}
@@ -25,15 +28,18 @@ library(tidyverse)
 tennisMatches <- read.csv("tennis_atp_matches_full.csv")
 ```
 
+
 ### Dimenzija podataka
 ```{r}
 dim(tennisMatches)
 ```
 
+
 ### Nazivi varijabli
 ```{r}
 names(tennisMatches)
 ```
+
 
 ### Prikaz podataka
 ```{r}
@@ -46,7 +52,7 @@ View(tennisMatches)
 sapply(tennisMatches, class)
 ```
 
-Kod učitavanja podataka može doći do situacije gdje se tipovi podatak pogrešno prepoznaju
+Kod učitavanja podataka može doći do situacije gdje se tipovi podataka pogrešno prepoznaju
 pa ih je potrebno ručno izmijeniti. U ovom se slučaju krivo prepoznaju tipovi varijabli: tourney_date, winner_id te loser_id.
 ```{r}
 tennisMatches <- tennisMatches %>% mutate(
@@ -59,6 +65,7 @@ tennisMatches <- tennisMatches %>% mutate(
 ```{r}
 summary(tennisMatches)
 ```
+
 
 ### Traženje nedostajućih vrijednosti
 Dani skup podataka nerijetko sadrži nedostajuće podatke. Rad nad takvim podacima može dovesti do pogrešaka u testiranju hipoteza i zaključivanju. Varijable s velikim udjelom nedostajućih vrijednosti odbacujemo iz skupa podataka.
@@ -76,8 +83,11 @@ tennisMatches <- select(tennisMatches, -c("winner_seed", "loser_seed"))
 dim(tennisMatches)
 ```
 
+
 ## Problem 1
-###Možemo li nešto zaključiti iz distribucije visine najboljih deset igrača u posljednjih 30 godina u odnosu na distribuciju visine igrača koji nisu bili tako uspješni?
+
+
+### Možemo li nešto zaključiti iz distribucije visine najboljih deset igrača u posljednjih 30 godina u odnosu na distribuciju visine igrača koji nisu bili tako uspješni?
 
 Potrebno je izdvojiti visine tenisača u dva različita skupa podataka. Prvi skup podataka sadrži jedistven skup igrača koji su u posljednih 30 godina bili u top deset najboljih u trenutku igranja meča, a drugi sadrži jedinstven skup igrača koji u posljednjih trideset godina u trenutku igranja meča nisu bili u top deset najboljih.
 
@@ -94,6 +104,7 @@ topTen = topTen[!duplicated(topTen[, c("name")]), ]
 
 cat("Pregled podataka o visini igrača u top deset najboljih\n")
 summary(topTen$ht)
+length(topTen$ht)
 
 
 notTopTenW = tennisMatches[tennisMatches$winner_rank > 10, c("winner_name", "winner_ht")]
@@ -107,17 +118,15 @@ notTopTen = notTopTen[!duplicated(notTopTen[, c("name")]), ]
 
 cat("\nPregled podataka o visini igrača koji nisu u top deset najboljih\n")
 summary(notTopTen$ht)
+length(notTopTen$ht)
 
 ```
 
-Premda se u podatcima nalaze nedostajeće vrijednosti, zamijenit ćemo ih prosječnim vrijednostima podataka.
+Premda su u podatcima o visinama igrača koji nisu u top deset najboljih gotovo polovica nedostajeće vrijdnosti, odlučujemo se za njihovo uklanjanje.
 
 ```{r}
-meanTopTenHt = mean(topTen$ht, na.rm = TRUE)
-meanNotTopTenHt = mean(notTopTen$ht, na.rm = TRUE)
-
-topTen$ht[is.na(topTen$ht)] = meanTopTenHt
-notTopTen$ht[is.na(notTopTen$ht)] = meanNotTopTenHt
+topTen = na.omit(topTen) 
+notTopTen = na.omit(notTopTen)
 
 cat("Pregled podataka o visini igrača u top deset najboljih\n")
 summary(topTen$ht)
@@ -126,7 +135,8 @@ cat("\nPregled podataka o visini igrača koji nisu u top deset najboljih\n")
 summary(notTopTen$ht)
 ```
 
-###Vizualizacija podataka
+
+### Vizualizacija podataka
 
 ```{r}
 
@@ -144,13 +154,17 @@ hist(notTopTen$ht,
      xlim = c(160, 220)
    )
 
-boxplot(topTen$ht, main="Visina igrača u top deset najboljih")
-boxplot(notTopTen$ht, main="Visina igrača koji nisu u top deset najboljih")
+boxplot(topTen$ht, notTopTen$ht, 
+        col = c("blue", "red"),
+        names = c("top ten", "not top ten"),
+        main="Visina igrača")
 ```
 
 Prije određivanja testa potrebno je provjeriti normalnost podataka.
 
-### Histogram te QQ-dijagram upućuju na normalnost podataka visine top deset najboljih igrača.
+
+### QQ dijagram 
+
 ```{r}
 # QQ-dijagram
 qqnorm(topTen$ht, pch = 1, frame = FALSE, main = "Visina top deset najboljih igrača")
@@ -161,23 +175,17 @@ qqnorm(notTopTen$ht, pch = 1, frame = FALSE,
 qqline(notTopTen$ht, col = "steelblue", lwd = 2)
 ```
 
-Histogram te QQ-dijagram upućuju na ne normalnost podataka visina igrača.
+Histogram te QQ-dijagram upućuju na manja odstupanja od normalnosti, no t-test je robustan na ne normalnost kada podatci imaju zvonoliku krivulju.
 
 
-Pod pretpostavkom da visine igrača prate normalnu distribuciju nastavlja testiranje povezanosti visine i uspješnosti igrača, koristi se t-test.
+Odlučujemo se za korištenje t-testa te je potrebno provesti analizu jednakosti varijanci.
 
-Testira se postoji li značajna razlika u očekivanju visine igrača koji su u top deset najboljih te onih koji nisu.
-
-$H_0$: očekivanje visine igrača koji su u top deset najboljih je jednako očekivanju visine onih igrača koji nisu top deset najboljih
-$H_1$: očekivanje visine igrača koji su u top deset najboljih je veće od očekivanja visine onih igrača koji nisu u top deset najboljih
-
-### Provedba t-testa
 
 ### Provjera jednakosti varijanci
 
 ```{r}
-varTopTen <- var(topTenHeight)
-varNotTopTen <- var(notTopTenHeight)
+varTopTen <- var(topTen$ht)
+varNotTopTen <- var(notTopTen$ht)
 cat("Varijanca top deset najboljih igrača: ", varTopTen, "\n")
 cat("Varijanca igrača izvan top deset najboljih: ", varNotTopTen)
 ```
@@ -191,35 +199,66 @@ $$F = \frac{S_{X_1}^2 / \sigma_1^2}{S_{X_2}^2 / \sigma_2^2}$$
 ima Fisherovu distribuciju s $(n_1 - 1, n_2 - 1)$ stupnjeva slobode, pri čemu vrijedi:
 $$S_{X_1}^2 = \frac{1}{n_1 - 1} \sum_{i = 1}^{n_1} (X_1^i - \bar{X}_1)^2, \quad S_{X_2}^2 = \frac{1}{n_2 - 1} \sum_{i = 1}^{n_2} (X_2^i - \bar{X}_2)^2.$$
 Hipoteze testa jednakosti varijanci glase:
+
 $$ \begin{aligned}
 H_0&: \sigma_1^2 = \sigma_2^2 \\
 H_1&: \sigma_1^2 \neq \sigma_2^2
 \end{aligned} $$
 
 ```{r}
-var.test(topTenHeight, notTopTenHeight)
+var.test(topTen$ht, notTopTen$ht)
 ```
-### Zaključak 
-Odbacujemo hipotezu $H_0$ o jednakosti varijanci pri razini značajnosti od 0.05 s obzirom da je p-vrijednost 2.2e-16.
 
-Provedba t-testa uz pretpostavku o nejednakosti varijanci.
+
+### Zaključak 
+
+Ne možemo odbaciti hipotezu $H_0$ o jednakosti varijanci pri razini značajnosti od 5% s obzirom da je p-vrijednost 0.2508.
+
+
+### Provedba t-testa
+
+Kod testiranja jednakosti očekivanja dvaju nezavisnih uzorka uz pretpostavku da oni potiću iz normalne distribucije, koristi se testna statistika
+
+$$T = \frac { \mu_{1} - \mu_{2} } { s_{p}^{2} \sqrt{ (\frac {1} {n_{1}} + \frac{1} {n_{2}}) } }$$
+
+gdje je 
+
+$$s_{p}^{2} = \frac { (n_{1} - 1)s_{1}^2 + (n_{2} - 1)s_{2}^{2} } { n_{1} + n_{2} - 2 }$$
+
+Odabrana testna statistika ima Studentovu distribuciju sa $n_1 - n_2 + 2$ stupnjeva slobode.
+
+$H_0$ : visina igrača koji su u posljednih 30 godina bili u top 10 najboljih je jednaka visini igrača koji u posljednjih 30 godina nisu tako uspješni
+
+$H_1$ :  visina igrača koji su u posljednih 30 godina bili u top 10 najboljih je veća u odnosu na visinu igrača koji u posljednjih 30 godina nisu tako uspješni
+
+odnosno
+
+$H_0 : \mu_{10} = \mu_{n10}$ 
+
+$H_0 : \mu_{10} > \mu_{n10}$
 
 ```{r}
-t.test(topTenHeight, notTopTenHeight, alt = "greater", var.equal = FALSE)
+t.test(topTen$ht, notTopTen$ht, alt = "greater", var.equal = TRUE)
 ```
+
+
 ### Zaključak
-Na razini značajnosti od 0.05 odbacujemo hipotezu $H_0$ premda je p-vrijednost 2.2e-16, postoji značajna razlika visina igrača u top deset najboljih u posljednjih 30 godina i onih izvan top deset najboljih. Visina igrača u top deset najboljih je veća od visine igrača koji nisu u top deset najboljih.
+
+Na razini značajnosti od 1% odbacujemo hipotezu $H_0$ premda je p-vrijednost 3.695e-05, postoji značajna razlika visina igrača u top deset najboljih u posljednjih 30 godina i onih izvan top deset najboljih. Visina igrača u top deset najboljih je veća od visine igrača koji nisu u top deset najboljih.
 
 Iz provedenog testa ne možemo zaključiti da visina izravno utječe na uspješnost igrača, već samo korelaciju između visine i uspješnosti igrača.
 
 
-
 ## Problem 2
+
+
 ### Predviđa li pobjeda prvog seta pobjedu cijelog meča?
 
-Potrebno je izdvojiti sve mečeve u kojima je pobijedio onaj tenisač koji je pobijedio i prvi set.
+Pobjeda prvog meča potencijalno može utjecati na psihloško stanje igrača te njegov stil igre, posebno u količini rizika koje igrač uzima tokom meča, ovisno o tome je li pobijedio ili izgubio prvi set. Postavlja se pitanje da li pobjeda prvog seta predviđa pobjedu cijelog meča.
 
-Podaci o setovima mogu sadržavati W/O koji označuju predaju ili diskvalifikaciju, pa te takve podatke potrebno ukloniti iz skupa podataka.
+Kako bi se problem testirao potrebno je izdvojiti podatke o mečevima u kojima je pobijedio onaj tenisač koji je pobijedio i prvi set, te podatke o mečevima u kojima je izbubio onaj tenisač koji je pobijedio prvi set.
+
+Podaci o setovima mogu sadržavati W/O koji označuju predaju ili diskvalifikaciju, takve je podatke potrebno ukloniti iz skupa podataka.
 ```{r}
 # Uklanjanje mečeva kojima je score W/O
 tennisMatchesSet <- tennisMatches[!is.na(as.numeric(substr(tennisMatches$score, 1, 1))), ]
@@ -229,10 +268,9 @@ scores <- tennisMatchesSet$score
 firstSet <- substr(scores, 1, 3)
 ```
 
-Sada preslikavam podatke u 1 i -1, tj. ako je pobjednik dobio prvi set tada rezultat označavam s 1, 
-a ako je gubitnik dobio prvi set tada to oznčavam s -1.
-Ako pobjeda prvog seta nije povezana s pobjedom meča, 
-tada očekujem da će srednja vrijednost biti oko 0
+Podatke ćemo preslikati u vrijednosti 1 i -1, odnosno, ako je pobjednik dobio prvi set tada rezultat označavamo s 1, a ako je gubitnik dobio prvi set rezultat označavamo s -1.
+Ako pobjeda prvog seta nije povezana s pobjedom meča, tada očekujemo da srednja vrijednost tako transformiranih podataka neće biti značajno različita od 0.
+
 ```{r}
 eFunc <- function(strSet){
   wScore = as.numeric(substr(strSet, 1 , 1))
@@ -254,16 +292,36 @@ for(i in firstSet){
 ```
 
 
-#### Provedba testa
 
-Testiram, razlikuje li se srednja vrijednost statistički značajno od 0
+```{r}
+cat("Srednja vrijednost transformiranih podataka\n")
+mean(extractedData)
+```
+
+
+### Provedba testa
+
+Koristit ćemo t-test s jednostranom alternativom čija je testna statistika
+
+$$T = \frac {\mu} {s \sqrt{n}}$$
+sa $n-1$ stupnjeva slobode.
+
+$H_0$ : pobjeda prvog seta predviđa pobjedu cijelog meča
+$H_1$ : pobjeda prvog seta ne predviđa pobjedu cijelog meča
+
+odnosno, uz transformaciju podataka,
 
 $$H_0: \mu = 0$$
-$$H_1: \mu > 1$$
+$$H_1: \mu > 0$$
 
 ```{r}
 t.test(extractedData, alt="greater")
 ```
+
+
+### Zaključak
+
+Odbacujemo nultu hipotezu u korist alternativne hipoteze, koja tvrdi da pobjeda prvog seta predviđa pobjedu cijelog meča, na razini značajnosti od 1% premda je p-vrijednost dobivena provedbom testa manje od 2.2e-16.
 
 
 Iz provedenih testova možemo zaključiti korelaciju podbjede prvog seta u svezi s pobjedom meča, ali ne možemo zaključiti da pobjeda prvog seta uzrokuje pobjedu meča.
@@ -271,25 +329,25 @@ Iz provedenih testova možemo zaključiti korelaciju podbjede prvog seta u svezi
 
 
 ## Problem 3
-###Možemo li temeljem danih varijabli predvidjeti pobjednika teniskog meča?
+
+
+### Možemo li temeljem danih varijabli predvidjeti pobjednika teniskog meča?
 ```{r}
 ```
 
 
-
 ## Problem 4
-Utječe li broj aseva na ishod pobjednika?
 
-Zato što u jednom meču podatci broja aseva pobjednika i asevi broja gubitnika ovisi o igračima koji igraju,
-ne mogu promatrati distribucije odvojeno, stoga zaključujem da trebam provjeriti je li broj aseva koji je ostvario
-pobjednik statistički značajno veći da bi se zaključila povezanost broja aseva i ishoda meča.
+### Utječe li broj aseva na ishod pobjednika?
 
-
-#### Provjera normalnosti podataka
-Provjeravam jesu li ispunjeni uvjeti za provedbu t testa
+Zato što u jednom meču podatci broja aseva pobjednika i asevi broja gubitnika ovisi o igračima koji igraju, ne možemo promatrati distribucije odvojeno, stoga zaključujemo da je potrebno provjeriti je li broj aseva koji je ostvario pobjednik statistički značajno veći da bi se zaključila povezanost broja aseva i ishoda meča.
 
 
-Provjeravam normalnost uparenih podataka broja aseva igrača koji je pobijedio (W)
+### Provjera normalnosti podataka
+
+Provjeravamo jesu li ispunjeni uvjeti za provedbu t testa.
+
+Provjeravamo normalnost uparenih podataka broja aseva igrača koji je pobijedio (W)
 umanjene za broj aseva koje je ostvario igrač koji je izgubio (L).
 ```{r}
 aseviUpareni <- c(tennisMatches$w_ace - tennisMatches$l_ace)
@@ -301,23 +359,22 @@ qqnorm(aseviUpareni, pch = 1, frame = FALSE, main = "Brojevi aseva W - L")
 qqline(aseviUpareni, col = "steelblue", lwd = 2)
 ```
 
-Iz QQ dijagrama vidim da podatci imaju odstupanja od normalne distribucije.
+Iz QQ dijagrama vidimo da podatci imaju odstupanja od normalne distribucije.
 ```{r}
 hist(aseviUpareni, main = "Broj aseva W - L", xlab = "Razlika aseva", ylab = "Frekvenicja")
 ```
 
-Podatci prate zvonoliku krivulju, a t-test je robustan na ne normalnost, 
-tj. distribucija uzorka ne mora biti normalna da bi t test dao ispravne rezultate,
- ali po obliku mora pratiti normalnu krivulju.
+Podatci prate zvonoliku krivulju, a t-test je robustan na ne normalnost, tj. distribucija uzorka ne mora biti normalna da bi t test dao ispravne rezultate, ali po obliku mora pratiti normalnu krivulju.
 ```{r}
 summary(aseviUpareni)
 boxplot(aseviUpareni)
 ```
 
 
-#### Provodim jednostrani T test
+### Provodba jednostranog T-testa
 
 Hipoteze:
+
 $$H_0: \mu_w - \mu_l = 0$$
 $$H_1: \mu_w - \mu_l > 0$$
 
@@ -327,19 +384,21 @@ $$H_1: \mu_w - \mu_l > 0$$
 t.test(aseviUpareni, alt = "greater")
 ```
 
-#### Zaključak
 
-Zbog male p-vrijednosti mogu odbaciti hipotezu $H_0$ i zaključiti da broj ostvarenih aseva igrača koji je pobijedio je statistički značajno veće
-na dostupnom uzorku nego od broja aseva koje je ostvario igrač koji je izgubio,
-stoga zaključujem da broj ostvarenih aseva utječe na pobjedu u meču.
+### Zaključak
+
+Zbog male p-vrijednosti možemo odbaciti hipotezu $H_0$ i zaključiti da broj ostvarenih aseva igrača koji je pobijedio je statistički značajno veće na dostupnom uzorku nego od broja aseva koje je ostvario igrač koji je izgubio, stoga zaključujemo da broj ostvarenih aseva utječe na pobjedu u meču.
 
 
 
 ## Problem 5
+
+
 ### Utječe li postotak osvojenosti poena prvim servisom na ishod pobjednika?
 
 
 ### Opis i postupak
+
 Mnogi tenisači stavljaju veliki fokus na povećanje osvajanja poena prvim servisom pa se postavlja pitanje utječe li postotak osvojenosti poena prvim servisom na ishod pobjenika. 
 
 Potrebno je izdvojiti postotak osvojenosti poena prvim servisom pobjenika mečeva i postotak osvojenosti poena prvim servisom gubitnika mečeva te ispitati njihov odnos.
@@ -375,6 +434,7 @@ cat("Postotak osvojenosti poena prvim servisom gubitnika:\n")
 summary(p1stWon.l)
 ```
 
+
 ### Vizualizacija
 ```{r}
 hist(p1stWon.w,
@@ -396,7 +456,6 @@ boxplot(p1Won.frame, col =c("green", "red"))
 Iz prikazanih dijagrama se može naslutiti da je postotak osvojenosti poena prvim servisom veći kod pobjednika u odnosu na gubitnike. Obje populacije imaju zvonolik oblik, no testirajmo normalnost i qq-plotom. 
 
 
-
 ### Provjera normalnosti
 ```{r}
 qqnorm(p1stWon.w,
@@ -414,7 +473,7 @@ qqnorm(p1stWon.l,
 qqline(p1stWon.l, col = "steelblue", lwd = 2)
 ```
 
-Pregledom dijagrama vidimo da podaci imaju odstupanja od normalne distribucije, ali je t-test robustan na ne-normalnost kada podaci imaju zvonolik oblik.
+Pregledom dijagrama vidimo da podaci imaju manju odstupanja od normalne distribucije, ali je t-test robustan na ne-normalnost kada podaci imaju zvonolik oblik.
 
 
 ### Testiranje jednakosti varijanci
@@ -429,30 +488,50 @@ cat("Varijanca postotka dobivenosti poena prvim servisom pobjednika: ", varPobje
 cat("Varijanca postotka dobivenosti poena prvim servisom gubitnika: ", varGubitnik, "\n")
 ```
 
+Ako imamo dva nezavisna slučajna uzorka $X_1^1, X_1^2, \ldots X_1^{n_1}$ i $X_2^1, X_2^2, \ldots, X_2^{n_2}$ koji dolaze iz normalnih distribucija s varijancama $\sigma_1^2$ i $\sigma_2^2$, tada slučajna varijabla
+$$F = \frac{S_{X_1}^2 / \sigma_1^2}{S_{X_2}^2 / \sigma_2^2}$$
+
+ima Fisherovu distribuciju s $(n_1 - 1, n_2 - 1)$ stupnjeva slobode, pri čemu vrijedi:
+$$S_{X_1}^2 = \frac{1}{n_1 - 1} \sum_{i = 1}^{n_1} (X_1^i - \bar{X}_1)^2, \quad S_{X_2}^2 = \frac{1}{n_2 - 1} \sum_{i = 1}^{n_2} (X_2^i - \bar{X}_2)^2.$$
+Hipoteze testa jednakosti varijanci glase:
+
+$$ \begin{aligned}
+H_0&: \sigma_1^2 = \sigma_2^2 \\
+H_1&: \sigma_1^2 \neq \sigma_2^2
+\end{aligned} $$
+
 ```{r}
 var.test(p1stWon.w, p1stWon.l)
 ```
 
 Zaključak:
-Na razini značajnosti od 1% može se zaključiti da varijance postotka dobivenosti poena prvim servisom pobjednika i gubitnika nisu jednake.
+
+Na razini značajnosti od 1% odbacujemo nultu hipotezu te zaključujemo da varijance postotka dobivenosti poena prvim servisom pobjednika i gubitnika nisu jednake.
+
 
 ### Odabir testa
-Iz provednih testova odlučujemo se za provjeru hipoteze uporabom t-testa uz pretpostavku nejednakosti varijanci. Taj test ima sljedeću testnu statistiku:
 
-$$T = \frac { \mu_{1} - \mu_{2} } { s_{p}^{2} \sqrt{ (\frac {1} {n_{1}} + \frac{1} {n_{2}}) } }$$
-gdje je 
+Iz provednih testova odlučujemo se za testiranje hipoteze uporabom t-testa uz pretpostavku nejednakosti varijanci. Taj test ima sljedeću testnu statistiku:
 
-$$s_{p}^{2} = \frac { (n_{1} - 1)s_{1}^2 + (n_{2} - 1)s_{2}^{2} } { n_{1} + n_{2} - 2 }$$
+$$T = \frac { \mu_{1} - \mu_{2} } { \sqrt{ (\frac {s_1^2} {n_{1}} + \frac{s_2^2} {n_{2}}) } }$$
+sa
+
+$$\upsilon = \frac {(\frac {s_1^2} {n_1} + \frac {s_2^2} {n_2} )^2} { \frac { (\frac {s_1^2} {n_1})^2 } {n_1 - 1} + \frac { (\frac {s_2^2} {n_2})^2 } {n_2 - 1}}  $$
+
+,zaokruženim na manji cijeli broj, stupnja slobode.
+
 ### Testiranje hipoteze
 
 Hipoteze:
 
 $H_0$ : postotci dobivenosti poena prvim servisom pobjednika i gubitnika meča su jednaki
+
 $H_1$ : postotak dobivenosti poena prvim servisom je veći kod pobjednika u odnosu na gubitnike meča
 
 odnosno
 
 $H_0: \mu_w - \mu_l = 0$ 
+
 $H_1: \mu_w - \mu_l > 0$
 ```{r}
 t.test(p1stWon.w, p1stWon.l,
@@ -467,17 +546,23 @@ Na razini signifikantnosti od 1% odbacujemo hipotezu $H_0$ u koristi hipoteze $H
 
 
 ## Problem 6
+
+
 ### Jesu li ljevaci nezgodniji protivnici dešnjacima koji igraju jednoručni backhand?
 
+
 ### Opis i postupak
+
 U tenisu se ljevaci smatraju nezgodnim protivnicima dešnjaka zbog načina na koji dešnjaci moraju igrati protiv njih. Također, jednoručni backhand se smatra superiornom tehnikom u odnosu na klasični backhand ako ga je igrač usavršio. Postavlja se pitanje jesu li ljevaci nezgodniji protivnici i onim dešnjacima koji igraju jednoručni backhand. Potrebno je usporediti odnos broja pobjeda te gubitaka igrača koji je dešnjak i igra jednoručni backhand kada igra protiv ljevaka te kada igra protiv dešnjaka.
 
 ### Korišten test
+
 Hipotezu ćemo testirati Hi-kvadrat testom za jednakost proporcija.
 
 $$\chi^2 = \sum_{i = 1}^{n} \frac{(O_i - E_i)^2} {E_i}$$
 
 ### Izdvajanje podataka i pregled
+
 ```{r message=FALSE, warning=FALSE, echo=FALSE}
 rightVSohbWinner = tennisMatches[tennisMatches$winner_ohb == "TRUE" & tennisMatches$winner_hand == "R" & tennisMatches$loser_hand == "R", ]
 
@@ -506,6 +591,7 @@ Iz prikaza podataka možemo naslutiti da postoji razlika u vjerojatnosti pobjede
 
 
 ### Testiranje hipoteze
+
 Provodimo Hi-kvadrat test jednakosti proporcija.
 
 Hipoteze:
@@ -523,9 +609,10 @@ Na razini signifikantnosti od 5% odbacujemo nultu hipotezu o jednakosti proporci
 
 
 
-##Problem 7
+## Problem 7
 
-###Utječe li broj dvostrukih pogrešaka na ishod pobjednika?
+
+### Utječe li broj dvostrukih pogrešaka na ishod pobjednika?
 
 Velik broj dvostrukih pogrešaka u teniskom meču može utjecati na nepotreban gubitak poena.
 Postavlja se pitanje utječe li broj dvostrukih pogrešaka na ishod pobjednika.
@@ -533,7 +620,8 @@ Postavlja se pitanje utječe li broj dvostrukih pogrešaka na ishod pobjednika.
 Potrebno je upariti broj dvostrukih pogrešaka pobjednika i gubitnika meča te vidjeti postoji li značajna razlika u broju dvostrukih pogrešaka pobjednika i gubitnika meča.
 
 
-###Dohvat podataka
+### Dohvat podataka
+
 ```{r}
 dfW = tennisMatches$w_df
 dfL = tennisMatches$l_df
@@ -546,8 +634,7 @@ summary(dfL)
 ```
 
 
-
-###Uklanjanje nedostajećih vrijednosti
+### Uklanjanje nedostajećih vrijednosti
 
 Iz podataka uklanjamo one mečeve za koje ne postoje podatci o broju dvostrukih pogrešaka
 pobjenika ili gubitnika meča.
@@ -564,9 +651,12 @@ summary(dfMatches$l_df)
 
 ```{r}
 dfMatches.upareni = dfMatches$w_df - dfMatches$l_df
+summary(dfMatches.upareni)
 ```
 
-###Vizualizacija podataka
+
+### Vizualizacija podataka
+
 ```{r}
 hist(dfMatches$w_df,
      xlab="Broj pogrešaka",
@@ -594,7 +684,6 @@ boxplot(dfMatches.upareni)
 
 Iz prikazanih dijagrama se može naslutiti kako gubitnici imaju veći broj dvostrukih pogrešaka u usporedbi sa pobjednicima meča. Upareni broj dvostrukih pogrešaka ima zvonolik oblik te njegov histogram nalikuje na normalnu distribuciju, no provjerimo to i qq-plotom.
 
-
 ```{r}
 qqnorm(dfMatches.upareni,
   pch = 1,
@@ -604,17 +693,19 @@ qqnorm(dfMatches.upareni,
 qqline(dfMatches.upareni, col = "steelblue", lwd = 2)
 ```
 
-###Odabir testa
+
+### Odabir testa
+
 QQ-plot daje uvid u manja odstupanja uparenog broja dvostrukih pogrešaka od normalne distribucije, no premda distribucija ima zvonolik oblik možemo koristiti t-test premda je on robustan na nenormalnost.
 
 Koristit ćemo t-test čija je testna statistika:
 
-$$t = \frac {\mu - \mu_{0}} {s/\sqrt{n}}$$
+$$T = \frac {\mu - \mu_{0}} {s/\sqrt{n}}$$
 
-###Hipoteze
+### Hipoteze
 
-$$H_0$$ : broj dvostrukih pogrešaka pobjednika je jednak broju dvostrukih pogrešaka gubitnika
-$$H_1$$ : broj dvostrukih pogrešaka pobjednika je manji od broja dvostrukih pogrešaka gubitnika
+$H_0$ : broj dvostrukih pogrešaka pobjednika je jednak broju dvostrukih pogrešaka gubitnika
+$H_1$ : broj dvostrukih pogrešaka pobjednika je manji od broja dvostrukih pogrešaka gubitnika
 
 odnosno
 
@@ -622,9 +713,14 @@ $$H_0 : \mu_{w} - \mu_{l} = 0$$
 $$H_1 : \mu_{w} - \mu_{l} < 0$$
 premda provodimo test nad uparenim podacima.
 
-###Provedba testa
+
+### Provedba testa
+
 ```{r}
 t.test(dfMatches.upareni, alt = "less")
 ```
-###Zaključak
-Na razini značajnosti od 1% odbacujemo nultu hipotezu u korist alternativne hipoteze koja govori da je broj dvostrukih pogrešaka gubitnika manji od broja dvostukih pogrešaka pobjednika meča. Ne možemo tvrditi da je broj dvostrukih pogrešaka pobjednika i gubitnika meča jednak.
+
+
+### Zaključak
+
+Na razini značajnosti od 1% odbacujemo nultu hipotezu u korist alternativne hipoteze koja govori da je broj dvostrukih pogrešaka pobjednika manji od broja dvostukih pogrešaka gubitnika meča. Ne možemo tvrditi da je broj dvostrukih pogrešaka pobjednika i gubitnika meča jednak.
