@@ -43,7 +43,7 @@ names(tennisMatches)
 
 ### Prikaz podataka
 ```{r}
-View(tennisMatches)
+view(tennisMatches)
 ```
 
 
@@ -68,19 +68,20 @@ summary(tennisMatches)
 
 
 ### Traženje nedostajućih vrijednosti
-Dani skup podataka nerijetko sadrži nedostajuće podatke. Rad nad takvim podacima može dovesti do pogrešaka u testiranju hipoteza i zaključivanju. Varijable s velikim udjelom nedostajućih vrijednosti odbacujemo iz skupa podataka.
+Dani skup podataka nerijetko sadrži nedostajuće podatke. Rad nad takvim podacima može dovesti do pogrešaka u testiranju hipoteza i zaključivanju. Varijable s velikim udjelom nedostajućih vrijednosti ćemo obraditi s ciljem da zadržimo informaciju koju sadrže.
 ```{r}
 for (col_name in names(tennisMatches)) {
   if (sum(is.na(tennisMatches[, col_name])) > 0) {
-    cat("Ukupno nedostajućih vrijednosti za varijablu ", col_name, ": ", sum(is.na(tennisMatches[, col_name])), "\n")
+    cat("Ukupno nedostajućih vrijednosti za varijablu ", col_name, ": ", 
+        sum(is.na(tennisMatches[, col_name])), "\n")
   }
 }
 ```
 
-Varijabla winner_seed ima 59% nedostajućih vrijednosti, a varijabla loser_seed ima 78% nedostajućih vrijednosti što znači da nam ne daju puno informacija o teniskim mečevima pa se takve varijable uklanjanju iz skupa podataka.
+Varijabla winner_seed ima 59% nedostajućih vrijednosti, a varijabla loser_seed ima 78% nedostajućih vrijednosti što znači da se gubi znatno količina informacije koju sadrže. Obradit ćemo ih na način da zamijenimo NA vrijednosti sa (najveći_seed + 1), što je u ovom slučaju 36.
 ```{r}
-tennisMatches <- select(tennisMatches, -c("winner_seed", "loser_seed"))
-dim(tennisMatches)
+tennisMatches$winner_seed[is.na(tennisMatches$winner_seed)] <- 36
+tennisMatches$loser_seed[is.na(tennisMatches$loser_seed)] <- 36
 ```
 
 
