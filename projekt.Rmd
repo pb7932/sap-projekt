@@ -2,9 +2,9 @@
 title: "SAP  - Projekt - Analiza teniskih mečeva"
 author: "Benjak Petar, Bilić Ante, Kaštelan Niko, Paradžik Mario"
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -158,7 +158,7 @@ Prije određivanja testa potrebno je provjeriti normalnost podataka.
 qqnorm(topTen$ht, pch = 1, frame = FALSE, main = "Visina top deset najboljih igrača")
 qqline(topTen$ht, col = "steelblue", lwd = 2)
 
-qqnorm(notTopTen$ht, pch = 1, frame = FALSE, 
+qqnorm(notTopTen$ht, pch = 1, frame = FALSE,
        main = "Visina igrača koji nisu u top deset najboljih ")
 qqline(notTopTen$ht, col = "steelblue", lwd = 2)
 ```
@@ -203,7 +203,7 @@ H_1&: \sigma_1^2 \neq \sigma_2^2
 ```{r}
 var.test(topTenHeight, notTopTenHeight)
 ```
-### Zaključak 
+### Zaključak
 Odbacujemo hipotezu $H_0$ o jednakosti varijanci pri razini značajnosti od 0.05 s obzirom da je p-vrijednost 2.2e-16.
 
 Provedba t-testa uz pretpostavku o nejednakosti varijanci.
@@ -233,9 +233,9 @@ scores <- tennisMatchesSet$score
 firstSet <- substr(scores, 1, 3)
 ```
 
-Sada preslikavam podatke u 1 i -1, tj. ako je pobjednik dobio prvi set tada rezultat označavam s 1, 
+Sada preslikavam podatke u 1 i -1, tj. ako je pobjednik dobio prvi set tada rezultat označavam s 1,
 a ako je gubitnik dobio prvi set tada to oznčavam s -1.
-Ako pobjeda prvog seta nije povezana s pobjedom meča, 
+Ako pobjeda prvog seta nije povezana s pobjedom meča,
 tada očekujem da će srednja vrijednost biti oko 0
 ```{r}
 eFunc <- function(strSet){
@@ -288,15 +288,27 @@ Zato što u jednom meču podatci broja aseva pobjednika i asevi broja gubitnika 
 ne mogu promatrati distribucije odvojeno, stoga zaključujem da trebam provjeriti je li broj aseva koji je ostvario
 pobjednik statistički značajno veći da bi se zaključila povezanost broja aseva i ishoda meča.
 
+#### Pogled na podatke
+
+```{r}
+aseviUpareni <- c(tennisMatches$w_ace - tennisMatches$l_ace)
+
+boxplot(aseviUpareni)
+abline(h=0, lwd=2, col="red")
+```
+
+Iz boxplota vidim da je median iznad 0 i očekujem da broj ostvarenih aseva će utjecati na ishod meča,
+ali podatci imaju stršećih vrijednosti.
+
 #### Korišteni test
 Za ovaj problem ću koristiti t test s uparenim vrijednostima.
-Neka je $w_i$ reaizacija broja aseva pobjednika i $l_i$ realizaija broja aseva gubitnika,
+Neka je $w_i$ realizacija broja aseva pobjednika i $l_i$ realizacija broja aseva gubitnika,
 tada definiram realizaciju razlike: $d_i = w_i - l_i$ za svaki meč u skupu podataka. Ovime
 dobivam populaciju razlika $D$ nad kojim ću provesti test.
 
-##### Pretpostavke testa
+#### Pretpostavke t testa
 1. Ako znamo da uzorak dolazi iz normalne distribucije t-test je egzaktan
-2. T-test pretpostavlja da su varijance jednake
+2. Uzorci moraju biti nezavisni
 
 #### Provjera normalnosti podataka
 Provjeravam jesu li ispunjeni uvjeti za provedbu t testa
@@ -304,9 +316,6 @@ Provjeravam jesu li ispunjeni uvjeti za provedbu t testa
 
 Provjeravam normalnost uparenih podataka broja aseva igrača koji je pobijedio (W)
 umanjene za broj aseva koje je ostvario igrač koji je izgubio (L).
-```{r}
-aseviUpareni <- c(tennisMatches$w_ace - tennisMatches$l_ace)
-```
 
 
 ```{r}
@@ -315,33 +324,36 @@ qqline(aseviUpareni, col = "steelblue", lwd = 2)
 ```
 
 Iz QQ dijagrama vidim da podatci imaju odstupanja od normalne distribucije.
+
+#### Lillieforseov test nad podatcima
+Provodim test o normalnosti distribucije
+
+###### Hipoteze testa su:
+$H_0$ : Podatci prate normalnu distribuciju
+
+$H_1$ : Podatci ne prate normalnu distribuciju
+```{r}
+lillie.test(aseviUpareni)
+```
+Zbog male p-vrijednosti zaključujem da mogu odbaciti $H_0$ u korist $H_1$,
+a to je da podatci ne prate normalnu distribuciju.
+
 ```{r}
 hist(aseviUpareni, main = "Broj aseva W - L", xlab = "Razlika aseva", ylab = "Frekvenicja")
 ```
 
-Podatci prate zvonoliku krivulju, a t-test je robustan na ne normalnost, 
+Podatci prate zvonoliku krivulju, a t-test je robustan na ne normalnost,
 tj. distribucija uzorka ne mora biti normalna da bi t test dao ispravne rezultate (test je aproksimativan),
  ali po obliku mora pratiti normalnu krivulju.
 
-Provodim Lilliefors test nad podatcima
-```{r}
-lillie.test(aseviUpareni)
-```
-
-#### Provjera jednakosti varijanci
-
-```{r}
-var.test(tennisMatches$w_ace, tennisMatches$l_ace)
-```
-
 #### Uvjeti testa
-Zato što variance nisu jednake i distribucija $D$ populacije nije normalna, ali je zvonolika, zaključujem da je t-test aproksimativan,
-zbog toga provodim i Jackknife, da utvrdim 99% interval za srednju vrijednost.
+Zato što distribucija $D$ populacije nije normalna, ali je zvonolika, zaključujem da je t-test aproksimativan,
+zbog toga provodim i Jackknife, da utvrdim 99% interval povjerenja za srednju vrijednost.
 
 
 #### Provodim jednostrani T test
 
-Hipoteze:
+###### Hipoteze:
 $$H_0: \mu_w - \mu_l = 0$$
 $$H_1: \mu_w - \mu_l > 0$$
 
@@ -396,18 +408,19 @@ cat("Interval povjerenja od 99% za aritmetičku sredinu je [", (j - qt(0.995, n-
 ```
 
 #### Zaključak Jackknifea
-Zato što srednja vrijednost $\mu = 0$ nije unutar 99% intervala procjene uzorka, 
+Zato što srednja vrijednost $\mu = 0$ nije unutar 99% intervala procjene uzorka,
 zaključujem da mogu odbaciti hipotezu $H_0$.
 
 ### Zaključak
-Iz provedenih testova zaključujem da broj ostvarenih aseva utječe na pobjedu u meču.
+Iz provedenih testova zaključujem da broj ostvarenih aseva utječe na pobjedu u meču,
+zato što je statistički značajno više igrača koji su pobijedili ostvarilo više aseva od onih koji su izgubili.
 
 ## Problem 5
 ### Utječe li postotak osvojenosti poena prvim servisom na ishod pobjednika?
 
 
 ### Opis i postupak
-Mnogi tenisači stavljaju veliki fokus na povećanje osvajanja poena prvim servisom pa se postavlja pitanje utječe li postotak osvojenosti poena prvim servisom na ishod pobjenika. 
+Mnogi tenisači stavljaju veliki fokus na povećanje osvajanja poena prvim servisom pa se postavlja pitanje utječe li postotak osvojenosti poena prvim servisom na ishod pobjenika.
 
 Potrebno je izdvojiti postotak osvojenosti poena prvim servisom pobjenika mečeva i postotak osvojenosti poena prvim servisom gubitnika mečeva te ispitati njihov odnos.
 
@@ -460,7 +473,7 @@ p1Won.frame = data.frame(w = p1stWon.w,l = p1stWon.l)
 boxplot(p1Won.frame, col =c("green", "red"))
 ```
 
-Iz prikazanih dijagrama se može naslutiti da je postotak osvojenosti poena prvim servisom veći kod pobjednika u odnosu na gubitnike. Obje populacije imaju zvonolik oblik, no testirajmo normalnost i qq-plotom. 
+Iz prikazanih dijagrama se može naslutiti da je postotak osvojenosti poena prvim servisom veći kod pobjednika u odnosu na gubitnike. Obje populacije imaju zvonolik oblik, no testirajmo normalnost i qq-plotom.
 
 
 
@@ -507,7 +520,7 @@ Na razini značajnosti od 1% može se zaključiti da varijance postotka dobiveno
 Iz provednih testova odlučujemo se za provjeru hipoteze uporabom t-testa uz pretpostavku nejednakosti varijanci. Taj test ima sljedeću testnu statistiku:
 
 $$T = \frac { \mu_{1} - \mu_{2} } { s_{p}^{2} \sqrt{ (\frac {1} {n_{1}} + \frac{1} {n_{2}}) } }$$
-gdje je 
+gdje je
 
 $$s_{p}^{2} = \frac { (n_{1} - 1)s_{1}^2 + (n_{2} - 1)s_{2}^{2} } { n_{1} + n_{2} - 2 }$$
 ### Testiranje hipoteze
@@ -519,7 +532,7 @@ $H_1$ : postotak dobivenosti poena prvim servisom je veći kod pobjednika u odno
 
 odnosno
 
-$H_0: \mu_w - \mu_l = 0$ 
+$H_0: \mu_w - \mu_l = 0$
 $H_1: \mu_w - \mu_l > 0$
 ```{r}
 t.test(p1stWon.w, p1stWon.l,
@@ -577,7 +590,7 @@ Provodimo Hi-kvadrat test jednakosti proporcija.
 
 Hipoteze:
 
-$H_0: p_r = p_l$ 
+$H_0: p_r = p_l$
 $H_1: p_r < p_l$
 
 
