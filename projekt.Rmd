@@ -22,6 +22,7 @@ Statistika i predviđanje sportskih rezultata mogu pomoći menadžerima, treneri
 library(dplyr)
 library(tidyverse)
 library(nortest)
+library(OpenCL)
 ```
 
 ### Učitavanje podataka
@@ -339,21 +340,40 @@ Iz provedenih testova možemo zaključiti korelaciju podbjede prvog seta u svezi
 
 
 ## Problem 4
+Utječe li broj aseva na ishod pobjednika?
 
-### Utječe li broj aseva na ishod pobjednika?
+Zato što u jednom meču podatci broja aseva pobjednika i asevi broja gubitnika ovisi o igračima koji igraju,
+ne mogu promatrati distribucije odvojeno, stoga zaključujem da trebam provjeriti je li broj aseva koji je ostvario
+pobjednik statistički značajno veći da bi se zaključila povezanost broja aseva i ishoda meča.
 
-Zato što u jednom meču podatci broja aseva pobjednika i asevi broja gubitnika ovisi o igračima koji igraju, ne možemo promatrati distribucije odvojeno, stoga zaključujemo da je potrebno provjeriti je li broj aseva koji je ostvario pobjednik statistički značajno veći da bi se zaključila povezanost broja aseva i ishoda meča.
+#### Pogled na podatke
 
-
-### Provjera normalnosti podataka
-
-Provjeravamo jesu li ispunjeni uvjeti za provedbu t testa.
-
-Provjeravamo normalnost uparenih podataka broja aseva igrača koji je pobijedio (W)
-umanjene za broj aseva koje je ostvario igrač koji je izgubio (L).
 ```{r}
 aseviUpareni <- c(tennisMatches$w_ace - tennisMatches$l_ace)
+
+boxplot(aseviUpareni)
+abline(h=0, lwd=2, col="red")
 ```
+
+Iz boxplota vidim da je median iznad 0 i očekujem da broj ostvarenih aseva će utjecati na ishod meča,
+ali podatci imaju stršećih vrijednosti.
+
+#### Korišteni test
+Za ovaj problem ću koristiti t test s uparenim vrijednostima.
+Neka je $w_i$ realizacija broja aseva pobjednika i $l_i$ realizacija broja aseva gubitnika,
+tada definiram realizaciju razlike: $d_i = w_i - l_i$ za svaki meč u skupu podataka. Ovime
+dobivam populaciju razlika $D$ nad kojim ću provesti test.
+
+#### Pretpostavke t testa
+1. Ako znamo da uzorak dolazi iz normalne distribucije t-test je egzaktan
+2. Uzorci moraju biti nezavisni
+
+#### Provjera normalnosti podataka
+Provjeravam jesu li ispunjeni uvjeti za provedbu t testa
+
+
+Provjeravam normalnost uparenih podataka broja aseva igrača koji je pobijedio (W)
+umanjene za broj aseva koje je ostvario igrač koji je izgubio (L).
 
 
 ```{r}
@@ -361,22 +381,38 @@ qqnorm(aseviUpareni, pch = 1, frame = FALSE, main = "Brojevi aseva W - L")
 qqline(aseviUpareni, col = "steelblue", lwd = 2)
 ```
 
-Iz QQ dijagrama vidimo da podatci imaju odstupanja od normalne distribucije.
+Iz QQ dijagrama vidim da podatci imaju odstupanja od normalne distribucije.
+
+#### Lillieforseov test nad podatcima
+Provodim test o normalnosti distribucije
+
+Hipoteze testa su:
+
+$H_0$ : Podatci prate normalnu distribuciju
+
+$H_1$ : Podatci ne prate normalnu distribuciju
+```{r}
+lillie.test(aseviUpareni)
+```
+Zbog male p-vrijednosti zaključujem da mogu odbaciti $H_0$ u korist $H_1$,
+a to je da podatci ne prate normalnu distribuciju.
+
 ```{r}
 hist(aseviUpareni, main = "Broj aseva W - L", xlab = "Razlika aseva", ylab = "Frekvenicja")
 ```
 
-Podatci prate zvonoliku krivulju, a t-test je robustan na ne normalnost, tj. distribucija uzorka ne mora biti normalna da bi t test dao ispravne rezultate, ali po obliku mora pratiti normalnu krivulju.
-```{r}
-summary(aseviUpareni)
-boxplot(aseviUpareni)
-```
+Podatci prate zvonoliku krivulju, a t-test je robustan na ne normalnost,
+tj. distribucija uzorka ne mora biti normalna da bi t test dao ispravne rezultate (test je aproksimativan),
+ ali po obliku mora pratiti normalnu krivulju.
+
+#### Uvjeti testa
+Zato što distribucija $D$ populacije nije normalna, ali je zvonolika, zaključujem da je t-test aproksimativan,
+zbog toga provodim i Jackknife, da utvrdim 99% interval povjerenja za srednju vrijednost.
 
 
-### Provodba jednostranog T-testa
+#### Provodim jednostrani T test
 
 Hipoteze:
-
 $$H_0: \mu_w - \mu_l = 0$$
 $$H_1: \mu_w - \mu_l > 0$$
 
@@ -386,12 +422,57 @@ $$H_1: \mu_w - \mu_l > 0$$
 t.test(aseviUpareni, alt = "greater")
 ```
 
+#### Zaključak t-testa
+
+Zbog male p-vrijednosti mogu odbaciti hipotezu $H_0$ i zaključiti da broj ostvarenih aseva igrača koji je pobijedio je statistički značajno veće
+na dostupnom uzorku nego od broja aseva koje je ostvario igrač koji je izgubio.
+
+#### Jackknife
+
+```{r jackknife}
+aseviUpareni <- na.omit(aseviUpareni)
+context <- oclContext(device = "gpu")
+buffer <- clBuffer(context, length(aseviUpareni), "numeric")
+buffer[] <- as.numeric(aseviUpareni)
+
+code = c("
+__kernel void mJackknife(__global float *output, const unsigned int count, __global float *input, __global int *len, __global float *mean)
+{
+  size_t i = get_global_id(0);
+  if(i >= count) return;
+  float s = 0.0f;
+  for(size_t j = 0; j < *len; j++){
+    if(i != j){
+      s+= input[j];
+    }
+  }
+  output[i] = (*len) * (*mean) -  s;
+}
+")
+
+k.mJackknife <- oclSimpleKernel(context, "mJackknife", code)
+
+n <- length(aseviUpareni)
+
+ps <- as.numeric(oclRun(k.mJackknife,
+      n,
+      buffer,
+      as.clBuffer(n, context),
+      as.clBuffer(mean(aseviUpareni), context),
+      dim = c(n)))
+
+se <- sd(ps)/sqrt(n)
+j <- mean(ps)
+cat("Interval povjerenja od 99% za aritmetičku sredinu je [", (j - qt(0.995, n-1)*se), " ,", (j + qt(0.995, n-1)*se), "]")
+```
+
+#### Zaključak Jackknifea
+Zato što srednja vrijednost $\mu = 0$ nije unutar 99% intervala procjene uzorka,
+zaključujem da mogu odbaciti hipotezu $H_0$.
 
 ### Zaključak
-
-Zbog male p-vrijednosti možemo odbaciti hipotezu $H_0$ i zaključiti da broj ostvarenih aseva igrača koji je pobijedio je statistički značajno veće na dostupnom uzorku nego od broja aseva koje je ostvario igrač koji je izgubio, stoga zaključujemo da broj ostvarenih aseva utječe na pobjedu u meču.
-
-
+Iz provedenih testova zaključujem da broj ostvarenih aseva utječe na pobjedu u meču,
+zato što je statistički značajno više igrača koji su pobijedili ostvarilo više aseva od onih koji su izgubili.
 
 ## Problem 5
 
