@@ -333,9 +333,121 @@ Iz provedenih testova možemo zaključiti korelaciju podbjede prvog seta u svezi
 
 ## Problem 3
 
+##TODO
+uzeli smo prvi model, testirali smo koje su vrijable znacajne
+na temelju tih p vrijednosti smo se odlučili maknuti df,
+testirali smo taj drugi bez df ( prikazati podatke),
+testirali smo anovom jesu li modeli jednako dobri, jese pa mozemo maknuti df iz modela,
+onda smo maknuli jos dvije varijable i opet testirali koje su u tom modelu znacajne varijable,
+i usporedili taj model s ovim koji nema df, i dobili smo da su razliciti i ovaj drugi ima manje reziduale
+pa mozemo uzeti ovaj drugi model kao bolji
+onda smo ostavili samo najznacajnije varijable i opet testirali i usporedili s ovim trecim i dobili da je taj prijasnji s vise varijabli
+bio bolji jer smo izgubili informacije micanjem varijabli iz modela
+
+prikaz postotaka za svako
+
+zakljucak
+na temelju danih varijabli ne mozemo 100 posto predvidjeti ali je postotak predvidanja X i postotak necega X...
+
 
 ### Možemo li temeljem danih varijabli predvidjeti pobjednika teniskog meča?
 ```{r}
+winners <- tennisMatches[ , grepl( "w" , names( tennisMatches ) ) ]
+winners <- winners[,-1]
+losers <- tennisMatches[ , grepl( "l" , names( tennisMatches ) ) ]
+losers <- losers[-1]
+
+colnames(winners) <- colnames(losers) <- c("id", "seed", "entry", "name", "hand", "ht", "ioc", "age", "ace", "df", "svpt", "FirstIn", "FirstWon", "SecondWon", "SvGms", "bpSaved", "bpFaced","rank", "rank_points", "ohb")
+
+winners$won <- 1
+losers$won <- 0
+player = rbind(winners, losers)
+player <- na.omit(player)
+view(player)
+logreg.mdl = glm(won ~ age + ht + seed + hand + ace + df + svpt + FirstIn + FirstWon + SecondWon + SvGms + bpSaved + bpFaced + rank + rank_points + ohb , data = player, family = binomial())
+summary(logreg.mdl)
+```
+```{r analiza modela}
+
+yHat <- logreg.mdl$fitted.values > 0.4
+tab <- table(player$won, yHat)
+
+tab
+
+
+accuracy = sum(diag(tab)) / sum(tab)
+precision = tab[2,2] / sum(tab[,2])
+recall = tab[2,2] / sum(tab[2,])
+specificity = tab[1,1] / sum(tab[,1])
+
+accuracy
+precision
+recall
+specificity
+
+```
+
+```{r}
+logreg.reduced = glm(won ~ ht + seed + ace + svpt + FirstWon + SecondWon  + bpSaved + bpFaced , data = player, family = binomial())
+summary(logreg.reduced)
+```
+```{r analiza modela}
+
+yHat <- logreg.reduced$fitted.values > 0.4
+tab <- table(player$won, yHat)
+
+tab
+
+
+accuracy = sum(diag(tab)) / sum(tab)
+precision = tab[2,2] / sum(tab[,2])
+recall = tab[2,2] / sum(tab[2,])
+specificity = tab[1,1] / sum(tab[,1])
+
+accuracy
+precision
+recall
+specificity
+
+```
+
+```{r}
+anova(logreg.mdl, logreg.reduced, test = "LRT")
+```
+
+```{r}
+logreg.reduced2 = glm(won ~ age + ht + seed  + ace + svpt + FirstWon + SecondWon + SvGms + bpSaved + bpFaced + rank + rank_points + ohb , data = player, family = binomial())
+summary(logreg.reduced2)
+```
+```{r analiza modela}
+
+yHat <- logreg.reduced2$fitted.values > 0.4
+tab <- table(player$won, yHat)
+
+tab
+
+
+accuracy = sum(diag(tab)) / sum(tab)
+precision = tab[2,2] / sum(tab[,2])
+recall = tab[2,2] / sum(tab[2,])
+specificity = tab[1,1] / sum(tab[,1])
+
+accuracy
+precision
+recall
+specificity
+
+```
+
+```{r}
+anova(logreg.mdl, logreg.reduced2, test = "LRT")
+anova(logreg.reduced, logreg.reduced2, test = "LRT")
+```
+```{r}
+logreg.df = glm(won ~ age + ht + seed + hand + ace + svpt + FirstIn + FirstWon + SecondWon + SvGms + bpSaved + bpFaced + rank + rank_points + ohb , data = player, family = binomial())
+summary(logreg.df)
+
+anova(logreg.df, logreg.mdl, test="LRT")
 ```
 
 
