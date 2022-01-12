@@ -556,7 +556,14 @@ qqnorm(p1stWon.l,
 qqline(p1stWon.l, col = "steelblue", lwd = 2)
 ```
 
-Pregledom dijagrama vidimo da podaci imaju manju odstupanja od normalne distribucije, ali je t-test robustan na ne-normalnost kada podaci imaju zvonolik oblik.
+QQ-dijagramom daje naslutiti da podatci odstupaju od normalne distribucije pa se odlučujemo za provedbu Lillieforsovog testa normalnosti.
+
+```{r}
+lillie.test(p1stWon.w)
+
+lillie.test(p1stWon.l)
+```
+Na temelju Lillieforsovog testa možemo zaključiti da podatci o postotku osvojenosti poena prvim servisom pobjednika i gubitnika nisu iz normalne distribucije, no premda oni prate zvonoliku krivulju te nemaju "duge repove", odlučujemo se za korištenje t-testa premda je on robustan na nenormalnost ukoliko distribucija podataka prati zvonoliku krivulju.
 
 
 ### Testiranje jednakosti varijanci
@@ -626,6 +633,31 @@ t.test(p1stWon.w, p1stWon.l,
 Zaključak:
 Na razini signifikantnosti od 1% odbacujemo hipotezu $H_0$ u koristi hipoteze $H_1$ koja tvrdi  da je postotak dobivenosti poena prvim servisom pobjednika meča veći od postotka dobivenosti poena prvim servisom gubitnika meča, premda je dobivena p-vrijednost manja od 2.2e-16.
 
+
+### Provedba neparametarskog testa
+
+Premda je Lillieforsov test normalnosti dao uvid u odstupanja distribucije podataka o postotcima dobivenosti poena prvim servisom, odlučujem se za provedbu neprametarskog testa kako mi proveli testiranje nad medijanima dviju populacija.
+
+Koristit ćemo Wilcoxon Rank-Sum test.
+Hipoteze testa glase:
+
+$H_0$ : medijani postotka dovivenosti poena prvim servisom pobjednika i gubitnika meča su jednaki
+
+$H_1$ : medijan postotka dobivenosti poena prvim servisom je veći kod pobjednika u odnosu na gubitnike meča
+
+$$H_0 : \tilde{x_w} = \tilde{x_l}$$
+$$H_1 : \tilde{x_w} > \tilde{x_l}$$
+
+
+```{r}
+wilcox.test(p1stWon.w, p1stWon.l, alternative = "greater")
+```
+
+### Zaključak
+
+Uz dobivenu p-vrijednost od  2.2e-16. na razini značajnosti od 1% odbacujemo nultu hipotezu, ne možemo tvrditi da su medijani postotaka dobivenosti poena prvim servisom jednaki kod pobjednika i gubitnika meča. Imamo razloga vjerovati da pobjednici meča imaju veći medijan postotka dobivenosti poena prvim servisom.
+
+Premda su podatci pratili zvonoliku krivulju te su imali kratke repove, mogli smo očekivati da će parametarski i neparametarski test dati slične rezultate, no Wilcoxon test ima veću snagu u odnosu na parametarski t-test u situaciji kada ne možemo tvrditi da podatci dolaze iz normalne distribucije.
 
 
 ## Problem 6
