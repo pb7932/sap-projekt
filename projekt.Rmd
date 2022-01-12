@@ -21,6 +21,7 @@ Statistika i predviđanje sportskih rezultata mogu pomoći menadžerima, treneri
 ```{r echo=T, error=FALSE, warning=FALSE, message=FALSE}
 library(dplyr)
 library(tidyverse)
+library(nortest)
 ```
 
 ### Učitavanje podataka
@@ -181,6 +182,17 @@ Histogram te QQ-dijagram upućuju na manja odstupanja od normalnosti, no t-test 
 
 Odlučujemo se za korištenje t-testa te je potrebno provesti analizu jednakosti varijanci.
 
+### Lillieforsov test
+
+Provjera normalnosti visina top deset najboljih igrača
+```{r}
+lillie.test(topTen$ht)
+```
+
+Provjera noramlnosti visina igrača koji nisu u top deset najboljih
+```{r}
+lillie.test(notTopTen$ht)
+```
 
 ### Provjera jednakosti varijanci
 
@@ -476,6 +488,18 @@ qqline(p1stWon.l, col = "steelblue", lwd = 2)
 
 Pregledom dijagrama vidimo da podaci imaju manju odstupanja od normalne distribucije, ali je t-test robustan na ne-normalnost kada podaci imaju zvonolik oblik.
 
+### Lillieforsov test
+
+Provjera normalnosti postotka osvojensoti poena prvim servisom pobjednika
+```{r}
+lillie.test(p1stWon.w)
+```
+
+Provjera normalnosti postotka osvojensoti poena prvim servisom gubitnika
+
+```{r}
+lillie.test(p1stWon.l)
+```
 
 ### Testiranje jednakosti varijanci
 
@@ -694,6 +718,11 @@ qqnorm(dfMatches.upareni,
 qqline(dfMatches.upareni, col = "steelblue", lwd = 2)
 ```
 
+### Lillieforsov test
+
+```{r}
+lillie.test(dfMatches.upareni)
+```
 
 ### Odabir testa
 
