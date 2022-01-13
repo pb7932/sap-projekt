@@ -484,7 +484,7 @@ Zato što u jednom meču podatci broja aseva pobjednika i asevi broja gubitnika 
 ne mogu promatrati distribucije odvojeno, stoga zaključujem da trebam provjeriti je li broj aseva koji je ostvario
 pobjednik statistički značajno veći da bi se zaključila povezanost broja aseva i ishoda meča.
 
-#### Pogled na podatke
+### Pogled na podatke
 
 ```{r}
 aseviUpareni <- c(tennisMatches$w_ace - tennisMatches$l_ace)
@@ -496,17 +496,17 @@ abline(h=0, lwd=2, col="red")
 Iz boxplota vidim da je median iznad 0 i očekujem da broj ostvarenih aseva će utjecati na ishod meča,
 ali podatci imaju stršećih vrijednosti.
 
-#### Korišteni test
+### Korišteni test
 Za ovaj problem ću koristiti t test s uparenim vrijednostima.
 Neka je $w_i$ realizacija broja aseva pobjednika i $l_i$ realizacija broja aseva gubitnika,
 tada definiram realizaciju razlike: $d_i = w_i - l_i$ za svaki meč u skupu podataka. Ovime
 dobivam populaciju razlika $D$ nad kojim ću provesti test.
 
-#### Pretpostavke t testa
+### Pretpostavke t testa
 1. Ako znamo da uzorak dolazi iz normalne distribucije t-test je egzaktan
 2. Uzorci moraju biti nezavisni
 
-#### Provjera normalnosti podataka
+### Provjera normalnosti podataka
 Provjeravam jesu li ispunjeni uvjeti za provedbu t testa
 
 
@@ -521,7 +521,7 @@ qqline(aseviUpareni, col = "steelblue", lwd = 2)
 
 Iz QQ dijagrama vidim da podatci imaju odstupanja od normalne distribucije.
 
-#### Lillieforseov test nad podatcima
+### Lillieforseov test nad podatcima
 Provodim test o normalnosti distribucije
 
 Hipoteze testa su:
@@ -543,12 +543,12 @@ Podatci prate zvonoliku krivulju, a t-test je robustan na ne normalnost,
 tj. distribucija uzorka ne mora biti normalna da bi t test dao ispravne rezultate (test je aproksimativan),
  ali po obliku mora pratiti normalnu krivulju.
 
-#### Uvjeti testa
+### Uvjeti testa
 Zato što distribucija $D$ populacije nije normalna, ali je zvonolika, zaključujem da je t-test aproksimativan,
 zbog toga provodim i Jackknife, da utvrdim 99% interval povjerenja za srednju vrijednost.
 
 
-#### Provodim jednostrani T test
+### Provodim jednostrani T test
 
 Hipoteze:
 $$H_0: \mu_w - \mu_l = 0$$
@@ -560,12 +560,12 @@ $$H_1: \mu_w - \mu_l > 0$$
 t.test(aseviUpareni, alt = "greater")
 ```
 
-#### Zaključak t-testa
+### Zaključak t-testa
 
 Zbog male p-vrijednosti mogu odbaciti hipotezu $H_0$ i zaključiti da broj ostvarenih aseva igrača koji je pobijedio je statistički značajno veće
 na dostupnom uzorku nego od broja aseva koje je ostvario igrač koji je izgubio.
 
-#### Jackknife
+### Jackknife
 
 ```{r jackknife}
 aseviUpareni <- na.omit(aseviUpareni)
@@ -583,7 +583,7 @@ j <- mean(ps)
 cat("Interval povjerenja od 99% za aritmetičku sredinu je [", (j - qt(0.995, n-1)*se), " ,", (j + qt(0.995, n-1)*se), "]")
 ```
 
-#### Zaključak Jackknifea
+### Zaključak Jackknifea
 Zato što srednja vrijednost $\mu = 0$ nije unutar 99% intervala procjene uzorka,
 zaključujem da mogu odbaciti hipotezu $H_0$.
 
@@ -836,7 +836,8 @@ $H_1: p_r < p_l$
 prop.test(x=c(17225, 2925), n=c(17225 + 13935, 2925 + 2228), alternative = "less")
 ```
 
-Zaključak:
+### Zaključak
+
 Na razini signifikantnosti od 5% odbacujemo nultu hipotezu o jednakosti proporcija u korist alternativne hipoteze koja tvrdi da je udio pobjeda protiv dešnjaka manji od udjela pobjeda protiv ljevaka. To znači da ne možemo tvrditi da su ljevaci nezgodniji protivnici dešnjacima koji igraju jednoručni backhand.
 
 
