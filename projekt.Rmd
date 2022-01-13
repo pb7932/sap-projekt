@@ -333,47 +333,133 @@ Iz provedenih testova možemo zaključiti korelaciju podbjede prvog seta u svezi
 
 ## Problem 3
 
-##TODO
-uzeli smo prvi model, testirali smo koje su vrijable znacajne
-na temelju tih p vrijednosti smo se odlučili maknuti df,
-testirali smo taj drugi bez df ( prikazati podatke),
-testirali smo anovom jesu li modeli jednako dobri, jese pa mozemo maknuti df iz modela,
-onda smo maknuli jos dvije varijable i opet testirali koje su u tom modelu znacajne varijable,
-i usporedili taj model s ovim koji nema df, i dobili smo da su razliciti i ovaj drugi ima manje reziduale
-pa mozemo uzeti ovaj drugi model kao bolji
-onda smo ostavili samo najznacajnije varijable i opet testirali i usporedili s ovim trecim i dobili da je taj prijasnji s vise varijabli
-bio bolji jer smo izgubili informacije micanjem varijabli iz modela
-
-prikaz postotaka za svako
-
-zakljucak
-na temelju danih varijabli ne mozemo 100 posto predvidjeti ali je postotak predvidanja X i postotak necega X...
-
-
 ### Možemo li temeljem danih varijabli predvidjeti pobjednika teniskog meča?
+
+S ciljem predviđanja pobjednika tensikog meča, možemo procijeniti regresijski model s danim podacima kao nezavisnim varijablama. U ovom slučaju ćemo se korisiti logističkom regresijom. Imamo na raspolaganju skup podataka $D = \{{X_1}, ..., {X_N}\}$ gdje je svaki ${X_i}$ vektor vrijednosti prediktorskih varijabli, one mogu biti diskretne (uz prikladno dummy-kodiranje) ili kontinuirane. Imamo i skup očekivanih izlaza $\{y_1, ..., y_n\}$ gdje je svaki $y_i$ binarna varijabla tj. 0 ili 1. Želimo dobiti kao izlaz modela skup izlaza $\{\hat{y_1}, ..., \hat{y_N}\}$. Idealno bismo od dobrog modela očekivali da bude (što je češće moguće) $\hat{y_i} = y_i$, tj. da radi dobre predikcije. Također, želimo imati vjerojatnost $P(\hat{Y_i} = 1 | {x_i})$ koja bi nam dala mjeru koliko je model "siguran" u svoju odluku i omogućavala da izračunamo predikcije na sljedeći način
+$$ \hat{y_i} = 
+\begin{cases}
+    1 & \text{ako } P(\hat{Y_i} = 1 | \vec{x_i})\geq 0.5\\
+    0,              & \text{inače}
+\end{cases} $$
+Glavni problem zbog kojeg ne možemo koristiti linearnu regresiju za ovaj zadatak je što ${\beta}^T{X}$ može poprimiti vrijednosti van intervala $[0, 1]$ pa izlaz linearne regresije ne možemo interpretirati kao vjerojatnost. 
+
+Logistička regresija rješava taj problem tako što transformira ${\beta}^T{X}$ koristeći logističku (sigmoidalnu) funkciju:
+$$ \sigma(\alpha) =  \frac{1}{1 + e^{-\alpha}} $$
+Model dakle prikazuje gore traženu vjerojatnost na sljedeći način:
+$$ P(\hat{Y_i} = 1 | {X_i}) =  \frac{1}{1 + e^{-{\beta}^T{X_i}}} $$
+
+Uz to što za svaki $x_i$ možemo dobiti vjerojatnost da je pripadni $y_i$ jednak 1, možemo i donijeti binarne odluke na temelju usporedbe dobivene vjerojatnosti s pragom od 0.5.
+
+### Pripremanje podataka
+
+Za svrhu učenja modela prvo trebamo pripremiti podatke, odnosno promijeniti njihov format u onaj prikladan za učenje modela. U našem slučaju, ovaj korak se sastoji od razdvajanja podataka pobjednika i gubitnika, te naknadnog spajanja podataka na način da svaki redak predstavlja podatke igrača u pojedinom meču. Također izbacujemo nedostajuće vrijednosti te dodajemo dodatni stupac "won" koji predstavlja zavisnu varijablu u treniranju modela. Pobjednik meča u stupcu "won" je označen brojem 1, a gubitnik brojem 0.
 ```{r}
 winners <- tennisMatches[ , grepl( "w" , names( tennisMatches ) ) ]
 winners <- winners[,-1]
 losers <- tennisMatches[ , grepl( "l" , names( tennisMatches ) ) ]
 losers <- losers[-1]
 
-colnames(winners) <- colnames(losers) <- c("id", "seed", "entry", "name", "hand", "ht", "ioc", "age", "ace", "df", "svpt", "FirstIn", "FirstWon", "SecondWon", "SvGms", "bpSaved", "bpFaced","rank", "rank_points", "ohb")
+colnames(winners) <- colnames(losers) <- c("id", "seed", "entry", "name", "hand", 
+"ht", "ioc", "age", "ace", "df", "svpt", "FirstIn", "FirstWon", "SecondWon", 
+"SvGms", "bpSaved", "bpFaced","rank", "rank_points", "ohb")
 
 winners$won <- 1
 losers$won <- 0
 player = rbind(winners, losers)
 player <- na.omit(player)
-view(player)
-logreg.mdl = glm(won ~ age + ht + seed + hand + ace + df + svpt + FirstIn + FirstWon + SecondWon + SvGms + bpSaved + bpFaced + rank + rank_points + ohb , data = player, family = binomial())
-summary(logreg.mdl)
 ```
+
+### Učenje modela
+
+Kako bismo naučili dobre vrijednosti za ${\beta}$ koristimo postupak procjene najveće izglednosti (vjerodostojnosti) (engl. *Maximum Likelihood Estimation*). Za neki fiksni vektor težina ${\beta}$ možemo izračunati vjerojatnost koju model daje našem cijelom skupu podataka. Npr. ako je $D = \{{X_1},{X_2},{X_3}\}$ i skup točnih izlaza je ${1,1,0}$ tada je vjerojatnost podataka uz model logističke regresije koji koristi te konkretne težine jednaka
+$$ P(D|{\beta}) = P(Y_1=1|X_1)P(Y_2=1|X_2)(1-P(Y_3=1|X_3). $$
+Ova veličina se još zove izglednost (vjerodostojnost) $L(\vec{\beta})$ parametara uz dane podatke. Da smo uzeli neki drugi skup težina ${\beta'}$, dobili bismo neku drugu vjerodostojnost $L({\beta'})$. Algoritam učenja radi tako pronađe onaj skup težina ${\beta}$ koji maksimizira ovu veličinu. Upravo taj skup težina najbolje opisuje podatke.
+Kao kod linearne regresije i ovdje možemo odrediti koje značajke su statistički značajne. U `summary` naredbi modela logističke regresije R će nam također ispisati i devijancu (engl. *deviance*). To je mjera zasnovana na izglednosti i opisuje nam koliko je model dobar, u smislu koliko dobro se prilagodio podacima (veći broj znači da je prilagodba gora). R će nam izbaciti dvije vrste devijance (1) `null deviance` -- koja opisuje model koji ima samo slobodni član i (2) `residual deviance` koja uključuje sve prediktorske varijable. Koristeći te dvije veličine, moguće je i izračunati $R^2$ danog modela kao:
+$$ R^2 = 1 - \frac{D_{mdl}}{D_0}. $$
+Izračunati $R^2$ može se koristiti kao mjera koja govori koliko je procijenjeni model blizu/daleko od null modela (0-1), tj. kolika je njegova prediktivna moć.
+
+Za prvi model ćemo koristiti sve dostupne dostupne varijable.
+
+```{r}
+logreg.mdl.full = glm(won ~ age + ht + seed + hand + ace + df + svpt + FirstIn + 
+FirstWon + SecondWon + SvGms + bpSaved + bpFaced + rank + rank_points + ohb , 
+data = player, family = binomial())
+summary(logreg.mdl.full)
+
+Rsq = 1 - logreg.mdl.full$deviance/logreg.mdl.full$null.deviance
+Rsq
+```
+
+Bolju informaciju moguće je dobiti iz tzv. matrice zabune (engl. *confusion matrix*), koja je zapravo kontingencijska matrica oznaka iz podataka i modela. Matrica će biti oblika:
+\begin{center}
+\begin{tabular}{l|c|c}
+      & $\hat{Y}=0$ & $\hat{Y}=1$\\
+\hline
+$Y=0$ & $TN$        & $FP$\\
+\hline
+$Y=1$ & $FN$        & $TP$\\
+\end{tabular}
+\end{center}
+
+Mjere koje mogu biti od interesa su:
+
+- točnost (eng. accuracy): $\dfrac{TP+TN}{TP+FP+TN+FN}$
+- preciznost (eng. precision): $\dfrac{TP}{TP+FP}$ (udio točnih primjera u svim koji su klasificirani kao TRUE)
+- odziv (eng. recall): $\dfrac{TP}{TP+FN}$ (udio točnih primjera u skupu svih koji su stvarno TRUE)
+- specifičnost (eng. specificity): $\dfrac{TN}{TN+FP}$ (udio točnih primjera u svim koji su klasificirani kao FALSE)
 ```{r analiza modela}
 
-yHat <- logreg.mdl$fitted.values > 0.4
+yHat <- logreg.mdl.full$fitted.values > 0.4
 tab <- table(player$won, yHat)
 
 tab
 
+accuracy = sum(diag(tab)) / sum(tab)
+precision = tab[2,2] / sum(tab[,2])
+recall = tab[2,2] / sum(tab[2,])
+specificity = tab[1,1] / sum(tab[,1])
+
+accuracy
+precision
+recall
+specificity
+```
+
+### Test omjera izglednosti (likelihood ratio test)
+
+Pokazuje se da za dva modela logističke regresije $M_1$ sa $N_1$ prediktorskih varijabli i $M_2$ sa $N_2$ prediktorskih varijabli statistika $-2\ln{\dfrac{L_1}{L_2}}$, gdje su $L_1$ i $L_2$ izglednosti za oba modela, ima $\chi^2$ distribuciju s $|N_1 - N_2|$ stupnjeva slobode. Tu statistiku možemo iskoristiti za testiranje postoji li značajna razlika u kvaliteti više alternativnih modela. Ovaj test ima sličnu ulogu kao F-test u slučaju linearne regresije.
+
+Na primjer, možemo testirati postoji li razlika između dva modela -- originalnog modela i modela bez statistički značajnih regresora. U tom slučaju ćemo prihvatiti smanjeni model ukoliko devijanca nije značajno veća.
+```{r}
+logreg.mdl.reduced = glm(won ~ age + ht + seed + ace + svpt + FirstWon + SecondWon 
++ SvGms + bpSaved + bpFaced + rank + rank_points + ohb + hand, 
+data = player, family = binomial())
+summary(logreg.mdl.reduced)
+
+anova(logreg.mdl.full, logreg.mdl.reduced, test = "LRT")
+Rsq.reduced = 1 - logreg.mdl.reduced$deviance/logreg.mdl.reduced$null.deviance
+```
+S obzirom na rezultate testa, možemo prihvatiti model bez varijable "df" zbog toga što devijanca nije značajno veća.
+Postupak pokušaja redukcije modela ponavljamo s izbacivanjem varijable "hand" te testiranjem razlike devijance.
+
+```{r}
+logreg.mdl.reduced2 = glm(won ~ age + ht + seed + ace + svpt + FirstWon + SecondWon
++ SvGms + bpSaved + bpFaced + rank + rank_points + ohb, 
+data = player, family = binomial())
+summary(logreg.mdl.reduced2)
+
+anova(logreg.mdl.reduced, logreg.mdl.reduced2, test = "LRT")
+```
+Kako je devijanca daljnje reduciranog modela značajno veća od prijašnjeg, ne možemo ga prihvatiti.
+
+### Analiza konačnog modela
+
+```{r}
+
+yHat <- logreg.mdl.reduced$fitted.values > 0.4
+tab <- table(player$won, yHat)
+
+tab
 
 accuracy = sum(diag(tab)) / sum(tab)
 precision = tab[2,2] / sum(tab[,2])
@@ -385,70 +471,11 @@ precision
 recall
 specificity
 
+Rsq.reduced
 ```
+### Zaključak
 
-```{r}
-logreg.reduced = glm(won ~ ht + seed + ace + svpt + FirstWon + SecondWon  + bpSaved + bpFaced , data = player, family = binomial())
-summary(logreg.reduced)
-```
-```{r analiza modela}
-
-yHat <- logreg.reduced$fitted.values > 0.4
-tab <- table(player$won, yHat)
-
-tab
-
-
-accuracy = sum(diag(tab)) / sum(tab)
-precision = tab[2,2] / sum(tab[,2])
-recall = tab[2,2] / sum(tab[2,])
-specificity = tab[1,1] / sum(tab[,1])
-
-accuracy
-precision
-recall
-specificity
-
-```
-
-```{r}
-anova(logreg.mdl, logreg.reduced, test = "LRT")
-```
-
-```{r}
-logreg.reduced2 = glm(won ~ age + ht + seed  + ace + svpt + FirstWon + SecondWon + SvGms + bpSaved + bpFaced + rank + rank_points + ohb , data = player, family = binomial())
-summary(logreg.reduced2)
-```
-```{r analiza modela}
-
-yHat <- logreg.reduced2$fitted.values > 0.4
-tab <- table(player$won, yHat)
-
-tab
-
-
-accuracy = sum(diag(tab)) / sum(tab)
-precision = tab[2,2] / sum(tab[,2])
-recall = tab[2,2] / sum(tab[2,])
-specificity = tab[1,1] / sum(tab[,1])
-
-accuracy
-precision
-recall
-specificity
-
-```
-
-```{r}
-anova(logreg.mdl, logreg.reduced2, test = "LRT")
-anova(logreg.reduced, logreg.reduced2, test = "LRT")
-```
-```{r}
-logreg.df = glm(won ~ age + ht + seed + hand + ace + svpt + FirstIn + FirstWon + SecondWon + SvGms + bpSaved + bpFaced + rank + rank_points + ohb , data = player, family = binomial())
-summary(logreg.df)
-
-anova(logreg.df, logreg.mdl, test="LRT")
-```
+Iz provedenih testova te dobivenih metrika, možemo tvrditi da s relativno visokom točnosti od 79.8% možemo predvidjeti pobjednika meča iz danih varijabli.
 
 
 ## Problem 4
