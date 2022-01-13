@@ -22,7 +22,6 @@ Statistika i predviđanje sportskih rezultata mogu pomoći menadžerima, treneri
 library(dplyr)
 library(tidyverse)
 library(nortest)
-library(OpenCL)
 ```
 
 ### Učitavanje podataka
@@ -570,35 +569,14 @@ na dostupnom uzorku nego od broja aseva koje je ostvario igrač koji je izgubio.
 
 ```{r jackknife}
 aseviUpareni <- na.omit(aseviUpareni)
-context <- oclContext(device = "gpu")
-buffer <- clBuffer(context, length(aseviUpareni), "numeric")
-buffer[] <- as.numeric(aseviUpareni)
 
-code = c("
-__kernel void mJackknife(__global float *output, const unsigned int count, __global float *input, __global int *len, __global float *mean)
-{
-  size_t i = get_global_id(0);
-  if(i >= count) return;
-  float s = 0.0f;
-  for(size_t j = 0; j < *len; j++){
-    if(i != j){
-      s+= input[j];
-    }
-  }
-  output[i] = (*len) * (*mean) -  s;
-}
-")
-
-k.mJackknife <- oclSimpleKernel(context, "mJackknife", code)
-
+ps <- numeric(length(aseviUpareni))
 n <- length(aseviUpareni)
-
-ps <- as.numeric(oclRun(k.mJackknife,
-      n,
-      buffer,
-      as.clBuffer(n, context),
-      as.clBuffer(mean(aseviUpareni), context),
-      dim = c(n)))
+m <- mean(aseviUpareni)
+s <- sum(aseviUpareni)
+for(i in 1:length(aseviUpareni)){
+  ps[i] = n * m - s + aseviUpareni[i]
+}
 
 se <- sd(ps)/sqrt(n)
 j <- mean(ps)
